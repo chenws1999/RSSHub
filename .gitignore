@@ -13,3 +13,6 @@ yarn-error.log
 tmp
 *.swp
 *.iml
+
+.history
+.vscode
