@@ -1,7 +1,6 @@
 module.exports = function getCtx ({query = {}, params = {}, path = '/'}) {
     return {
         params: params,
-        query: {},
         state: {},
         request: {
             query

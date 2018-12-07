@@ -10,6 +10,10 @@ module.exports = {
 		subscribeCount: uid => `usersubscribeCount:${uid}`
 	},
 	FeedOriginTypes: {
+		diff: 'diff',
+		increase: 'increase'
+	},
+	FeedOriginPriorityTypes: {
 		main: 'main',
 		second: 'second'
 	}

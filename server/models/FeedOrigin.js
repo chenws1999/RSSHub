@@ -10,8 +10,10 @@ const FeedOriginSchema = new mongoose.Schema({
 	name: {type: String},
 	uniqueName: {type: String, unique: true},
 	desc: String,
-	feedType: {type: String},
+	type: {type: String},
+	priority: String,
 	tags: [String],
+	stop: {type: Number, default: 0}, // 关闭源
 })
 
 FeedOriginSchema.pre('save', function(next) {
