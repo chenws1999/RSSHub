@@ -9,10 +9,15 @@ const FeedSchema = new mongoose.Schema({
 	origin: {type: ObjectId, ref: 'FeedOrigin'},
 	originCode: {type: String},
 	originType: String,
-	lastUpdate: {type: Date}, // 最近一次源更新
+	lastUpdate: {type: Date, default: Date.now}, // 最近一次源更新
 	lastFetch: {type: Date}, // 最近一次请求是否更新
 	lastSnapshot: {type: ObjectId, ref: 'Snapshot'}, // 最近一次更新的快照
 	stop: {type: Number, default: 0}, // 关闭源
+	// isNew: {type: Number, default: 1}, // 是否为新feed
+	params: [{
+		key: String,
+		value: String
+	}]
 })
 
 FeedSchema.pre('save', function(next) {

@@ -7,6 +7,7 @@ const settings = require('../config/settings.js')
 const Enums = require('../lib/enums')
 const redis = require('../lib/redis')
 
+const {RedisKeys} = Enums
 exports.login = async function (params) {
 	
 }
@@ -32,8 +33,34 @@ exports.subscribeFeed =  async function () {
 		feed
 	})
 	await record.save()
-	await redis.set(cacheKey, countCache + 1)
+	await redis.set(cacheKey, countCache + 1, 'EX', 3600)
 	res.json({
 		code: 0,
 	})
+}
+
+exports.getRegistetCode = async (req, res) => {
+	const {email} = req.body
+	if (!email) {
+		throw new Error('invalid email')
+	}
+	const redisKey = RedisKeys.emailCode(email)
+	const findCode = await redis.get(redisKey)
+	if (findOne) {
+		throw new Error('已发送,请勿频繁点击')
+	}
+	
+	const code = Math.random().toString(32).slice(2, 8).toUpperCase()
+	await redis.set(redisKey, code, 'EX', 5 * 60)
+
+	res.json({
+		code: 0,
+		resCode: code
+	})
+}
+
+exports.register = async (req, res) => {
+	const {email, password, code} = req.body
+
+	const code = await redis.get()
 }

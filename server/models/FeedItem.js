@@ -8,7 +8,7 @@ const FeedItemSchema = new mongoose.Schema({
 	updateAt: {type: Date, default: Date.now},
 	snapshot: {type: ObjectId, ref: 'Snapshot', required: true},
 	feedSnapshot: {type: String, unique: true},
-	feed: {type: Object, ref: 'Feed', required: true},
+	feed: {type: ObjectId, ref: 'Feed', required: true},
 	feedType: String,
 	title: String,
 	link: String,

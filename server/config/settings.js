@@ -1,4 +1,4 @@
 module.exports = {
 	subscribeLimit: 10,
-	crawlInterval: 2, // 爬虫间隔 单位小时
+	crawlInterval: 60, // 爬虫间隔 单位秒
 }

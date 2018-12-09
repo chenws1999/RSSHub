@@ -19,8 +19,7 @@
   "keywords": [
     "RSS"
   ],
-  "gitHooks": {
-  },
+  "gitHooks": {},
   "author": "DIYgod",
   "license": "MIT",
   "bugs": {
@@ -35,6 +34,7 @@
     "ioredis": "^4.2.0",
     "lint-staged": "8.1.0",
     "mongoose": "^5.3.14",
+    "nodemailer": "^4.7.0",
     "nodemon": "1.18.7",
     "prettier": "1.15.3",
     "prettier-check": "2.0.0",

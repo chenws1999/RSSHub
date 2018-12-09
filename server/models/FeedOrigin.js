@@ -8,12 +8,14 @@ const FeedOriginSchema = new mongoose.Schema({
 	updateAt: {type: Date, default: Date.now},
 	code: {type: String, unique: true},
 	name: {type: String},
-	uniqueName: {type: String, unique: true},
+	// uniqueName: {type: String, unique: true},
 	desc: String,
 	type: {type: String},
 	priority: String,
 	tags: [String],
 	stop: {type: Number, default: 0}, // 关闭源
+
+	paramKeys: [String]
 })
 
 FeedOriginSchema.pre('save', function(next) {
