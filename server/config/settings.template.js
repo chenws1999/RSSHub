@@ -1,6 +1,7 @@
 module.exports = {
 	port: 4000,
 	sessionSecret: 'balalatest123', 
+	mongouri: 'mongodb://localhost/balala',
 
 	appId: '',
 	appSecret: '',

@@ -14,6 +14,42 @@ const redis = require('../lib/redis')
 
 const {RedisKeys, FeedOriginPriorityTypes} = Enums
 
+const global = {
+	feedOriginTree: {}
+}
+
+function generateFeedSignatureStr (origin, params = []) {
+	return origin._id + '?' + (params.map(obj => `${obj.key}=${obj.value}`).join('&'))
+}
+
+async function getFeedOriginTree () {
+	const obj = {}
+	const feeds = await FeedOrigin.find().lean()
+	feeds.forEach((feed) => {
+		if (feed.priority === Enums.FeedOriginPriorityTypes.main) {
+			const key = feed._id
+			if (!obj[key]) {
+				obj[key] = {
+					children: []
+				}
+			}
+			Object.assign(obj[key], feed)
+			
+		} else {
+			const key = feed.parent
+			if (!obj[key]) {
+				obj[key] = {
+					children: []
+				}
+			}
+			obj[key].children.push(feed)
+		}
+	})
+	global.feedOriginTree = obj
+	console.log(obj)
+}
+getFeedOriginTree()
+
 const toPromise = (func) => (...args) => new Promise((resolve, reject) => {
 	func(...args, (err, res) => {
 		if (err) {
@@ -36,28 +72,39 @@ exports.isLogin = async function (req, res, next) {
 
 exports.errHandler = function (err, req, res, next) {
 	res.json({code: -1, msg: err.message || 'server error'})
-	console.log(err)
+	// console.log(err)
 }
 
 exports.getFeedOriginList = async function (req, res) {
-	const pn = parseInt(req.query.pn)
 	const limit = 10
-	const priority = req.query.priority
+	const {after} = req.query
 	const user = req.user
 	
-	const myFeeds = await UserFeed.query({user})
-	const excludeCodes = myFeeds.map(i => i.originCode)
+	const myFeeds = await UserFeed.find({user})
+	const codes = myFeeds.map(i => i.originCode)  //todo 缓存
 
-	const query = {}
-	if (priority) {
-		query.priority = priority
-	}
-	
-	const list = await FeedOrigin.find(query).skip(pn * limit).limit(limit)
+	const list = Object.values(global.feedOriginTree)
+	// const query = {}
+	// if (priority) {
+	// 	query.priority = priority
+	// }
+	// if (after) {
+	// 	query.createAt = {
+	// 		$lt: after
+	// 	}
+	// }
+	// if (parent) {
+	// 	query.parent = parent
+	// }
+	// const list = await FeedOrigin.find(query).sort({createAt: -1}).limit(limit).lean()
 	res.json({
 		code: 0,
 		list: list.map(feed => {
-			feed.subscribe = excludeCodes.includes(feed.code) 
+			feed.children = feed.children.map(item => {
+				// item.subscribe =  && codes.includes(item.code)
+				// item.userFeedId = 
+				return item
+			})
 			return feed
 		})
 	})
@@ -66,18 +113,52 @@ exports.getFeedOriginList = async function (req, res) {
 
 
 exports.subscribeFeed =  async function (req, res) {
-	const {feedId} = req.body
+	const {originId, postParams = []} = req.body
 	const user = req.user
-	const feed = await Feed.findById(feedId)
+	const feedOrigin = await FeedOrigin.findById(originId)
 	
-	if (!feed) {
+	if (!feedOrigin) {
 		throw new Error('invalid feild id')
+	}
+	if (feedOrigin.priority === Enums.FeedOriginPriorityTypes.main) {
+		throw new Error('暂不支持订阅一级源')
 	}
 	const count = await UserFeed.count({user})
 
 	if (count >= settings.subscribeLimit) {
 		throw new Error('超过订阅上限')
 	}
+
+	const params = []
+	const needParams = !!(feedOrigin.params && feedOrigin.params.length)
+	if (needParams) {
+		feedOrigin.params.forEach(obj => {
+			const {key, name} = obj
+			const value = postParams[key]
+			if (!key) {
+				throw new Error('loss filed: ' + key)
+			}
+			params.push({
+				value,
+				key,
+				name
+			})
+		})
+	}
+	
+	const signatureStr = generateFeedSignatureStr(feedOrigin, params)
+	let feed = await Feed.findOne({origin: feedOrigin, signatureStr})
+	if (!feed) {
+		feed = new Feed({
+			origin: feedOrigin,
+			originCode: feedOrigin.code,
+			originType: feedOrigin.Type,
+			params,
+			signatureStr
+		})
+		await feed.save()
+	}
+
 	const record = new UserFeed({
 		code: feed.code,
 		originCode: feed.originCode,
@@ -91,10 +172,11 @@ exports.subscribeFeed =  async function (req, res) {
 }
 
 exports.unsubscribeFeed =  async function (req, res) {
-	const {userFeedId} = req.body
+	const {userFeedId, feedId} = req.body
 	const user = req.user
 
-	const userFeed = await UserFeed.findById(userFeedId)
+	const query = userFeedId ? {_id: userFeedId} : {feed: feedId, user}
+	const userFeed = await UserFeed.findOne(query)
 	if (!userFeed) {
 		throw new Error('invalid userfeed')
 	}
@@ -109,21 +191,28 @@ exports.unsubscribeFeed =  async function (req, res) {
 }
 
 exports.getPushRecordList = async function (req, res) {
-	const pn = parseInt(req.query.pn)
+	const {after} = req.params
 	const unread = parseInt(req.query.unread)
 	const limit = 5
 	const user = req.user
 
 	const query = {user}
+	if (after) {
+		query.pushTime = {
+			$lt: after
+		}
+	}
 	if (unread) {
 		query.unread = 1
 	}
-	const list = await UserSnapshot.find(query).sort({createAt: -1}).skip(pn * limit).limit(limit)
+	const list = await UserSnapshot.find(query).sort({pushTime: -1}).limit(limit)
 	res.json({
 		code: 0,
-		list
+		list,
 	})
 }
+
+
 
 exports.readPushRecord = async function (req, res) {
 	const user = req.user
@@ -145,8 +234,7 @@ exports.readPushRecord = async function (req, res) {
 
 exports.getFeedContentList = async function (req, res) {
 	const user = req.user
-	const feedId = req.query.feed
-	const pn = parseInt(req.query.pn)
+	const {feed: feedId, after} = req.query
 	const limit = 10
 
 	const userFeed = await UserFeed.findOne({feed: feedId, user})
@@ -154,7 +242,13 @@ exports.getFeedContentList = async function (req, res) {
 		throw new Error('越权操作')
 	}
 
-	const list = await FeedItem.find().sort({createAt: -1}).skip(limit * pn).limit(10)
+	const query = {}
+	if (after) {
+		query.createAt = {
+			$lt: after
+		}
+	}
+	const list = await FeedItem.find(query).sort({createAt: -1}).limit(limit)
 	res.json({
 		code: 0,
 		list
@@ -191,13 +285,13 @@ exports.login = async (req, res) => {
 		method: 'GET',
 		qs: {
 			appid: settings.appId,
-			secret: settings.secret,
+			secret: settings.appSecret,
 			js_code: code,
 			grant_type: ' authorization_code'
 		},
 		json: true
 	})
-	if (wxRes.errcode !== 0) {
+	if (wxRes.errcode) {
 		throw new Error('wx server error: ' +  wxRes.errcode + wxRes.errmsg)
 	}
 
@@ -236,12 +330,31 @@ exports.getMineInfo = async (req, res) => {
 	})
 }
 
+exports.getOverview = async (req, res) => {
+	const user = req.user
+
+	const unreadPush = await UserSnapshot.findOne({user}).sort({createAt: -1}).lean()
+	const unreadCount = await UserSnapshot.count({user, unread: 1})
+	const feedList = await await UserFeed.find({user})
+		.populate({path: 'feed', populate: 'origin'})
+		.sort({createAt: -1})
+		.lean()
+
+	res.json({
+		code: 0,
+		unreadPush,
+		unreadCount,
+		feedList,
+	})
+}
+
+
 exports.getMyFeedList = async function (req, res) {
 	const pn = parseInt(req.query.pn)
 	const limit = 15
 	const user = req.user
 	
-	const list = await UserFeed.query({user})
+	const list = await UserFeed.find({user})
 		.populate({path: 'feed', populate: 'origin'})
 		.sort({createAt: -1})
 		.skip(limit * pn)

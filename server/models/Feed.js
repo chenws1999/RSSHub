@@ -17,9 +17,11 @@ const FeedSchema = new mongoose.Schema({
 	stop: {type: Number, default: 0}, // 关闭源
 	// isNew: {type: Number, default: 1}, // 是否为新feed
 	params: [{
+		name: String,
 		key: String,
 		value: String
-	}]
+	}],
+	signatureStr: String
 })
 
 FeedSchema.pre('save', function(next) {

@@ -2,22 +2,36 @@ const express = require('express')
 
 const mainCtrl = require('./controllers/main')
 
-const apiRouter = express.Router()
+const catchError = (func) => {
+	return async (req, res, next) => {
+		try {
+			await func(req, res, next)
+		} catch (e) {
+			console.log(e)
+			res.json({
+				code: -1,
+				msg: e.message || '未知错误'
+			})
+		}
+	}
+}
 
-apiRouter.post('/csrfToken', mainCtrl.getCsrfToken)
-apiRouter.post('/loginweapp', mainCtrl.login)
+const apiRouter = express.Router()
+apiRouter.get('/csrfToken', catchError(mainCtrl.getCsrfToken))
+apiRouter.post('/loginweapp', catchError(mainCtrl.login))
 
 apiRouter.use(mainCtrl.isLogin)
-apiRouter.get('/user/myfeedList', mainCtrl.getMyFeedList)
-apiRouter.get('/user/info', mainCtrl.getMineInfo)
+apiRouter.get('/user/myfeedList', catchError(mainCtrl.getMyFeedList))
+apiRouter.get('/user/info', catchError(mainCtrl.getMineInfo))
+apiRouter.get('/user/overview', catchError(mainCtrl.getOverview))
 
-apiRouter.get('/feed/originList', mainCtrl.getFeedOriginList)
-apiRouter.post('/feed/subscribe', mainCtrl.subscribeFeed)
-apiRouter.post('/feed/unsubcribe', mainCtrl.unsubscribeFeed)
-apiRouter.get('/feed/contents', mainCtrl.getFeedContentList)
+apiRouter.get('/feed/originList', catchError(mainCtrl.getFeedOriginList))
+apiRouter.post('/feed/subscribe', catchError(mainCtrl.subscribeFeed))
+apiRouter.post('/feed/unsubscribe', catchError(mainCtrl.unsubscribeFeed))
+apiRouter.get('/feed/contents', catchError(mainCtrl.getFeedContentList))
 
-apiRouter.get('/push/List', mainCtrl.getPushRecordList)
-apiRouter.post('/push/read', mainCtrl.readPushRecord)
+apiRouter.get('/push/List', catchError(mainCtrl.getPushRecordList))
+apiRouter.post('/push/read', catchError(mainCtrl.readPushRecord))
 
 const rootRouter = express.Router()
 rootRouter.use('/api', apiRouter, mainCtrl.errHandler)

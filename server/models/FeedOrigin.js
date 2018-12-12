@@ -6,6 +6,7 @@ const ObjectId = Schema.ObjectId
 const FeedOriginSchema = new mongoose.Schema({
 	createAt: {type: Date, default: Date.now},
 	updateAt: {type: Date, default: Date.now},
+	parent: {type: ObjectId, ref: 'FeedOrigin'},
 	code: {type: String, unique: true},
 	name: {type: String},
 	// uniqueName: {type: String, unique: true},
@@ -15,7 +16,10 @@ const FeedOriginSchema = new mongoose.Schema({
 	tags: [String],
 	stop: {type: Number, default: 0}, // 关闭源
 
-	paramKeys: [String]
+	params: [{
+		name: String,
+		key: String,
+	}]
 })
 
 FeedOriginSchema.pre('save', function(next) {
