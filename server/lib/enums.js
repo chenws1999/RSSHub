@@ -19,5 +19,10 @@ module.exports = {
 	FeedOriginPriorityTypes: {
 		main: 'main',
 		second: 'second'
+	},
+	FeedOriginParamTypes: {
+		input: 'input',
+		select: 'select',
+		multiSelect: 'multiSelect',
 	}
 }

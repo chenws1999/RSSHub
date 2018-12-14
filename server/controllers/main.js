@@ -12,7 +12,7 @@ const settings = require('../config/settings.js')
 const Enums = require('../lib/enums')
 const redis = require('../lib/redis')
 
-const {RedisKeys, FeedOriginPriorityTypes} = Enums
+const {RedisKeys, FeedOriginPriorityTypes, FeedOriginParamTypes} = Enums
 
 const global = {
 	feedOriginTree: {}
@@ -110,10 +110,24 @@ exports.getFeedOriginList = async function (req, res) {
 	})
 }
 
-
+const getPickerValue = (rangeArr, pickerValue) => {
+	if (!rangeArr || !rangeArr.length || !pickerValue || !pickerValue.length) {
+		return null
+	}
+	const id = pickerValue.shift()
+	const findOne = rangeArr.find(obj => obj._id === id)
+	if (!findOne) {
+		return null
+	}
+	if (findOne.children) {
+		return getPickerValue(findOne.children, pickerValue)
+	} else {
+		return findOne
+	}
+}
 
 exports.subscribeFeed =  async function (req, res) {
-	const {originId, postParams = []} = req.body
+	const {originId, name, postParams = []} = req.body
 	const user = req.user
 	const feedOrigin = await FeedOrigin.findById(originId)
 	
@@ -133,10 +147,18 @@ exports.subscribeFeed =  async function (req, res) {
 	const needParams = !!(feedOrigin.params && feedOrigin.params.length)
 	if (needParams) {
 		feedOrigin.params.forEach(obj => {
-			const {key, name} = obj
-			const value = postParams[key]
-			if (!key) {
-				throw new Error('loss filed: ' + key)
+			const {key, name, paramType, range} = obj
+			const postValue = postParams[key]
+			let value = postValue
+			if (!postValue) {
+				throw new Error('loss param filed data: ' + key)
+			}
+			if ([FeedOriginParamTypes.multiSelect, FeedOriginParamTypes.select].includes(paramType)) {
+				const v = getPickerValue(range, postValue)
+				if (!v) {
+					throw new Error(`param: ${key}'s value invalid` )
+				}
+				value = v
 			}
 			params.push({
 				value,
@@ -159,11 +181,17 @@ exports.subscribeFeed =  async function (req, res) {
 		await feed.save()
 	}
 
+	const findFeed = await UserFeed.findOne({feed, user})
+	if (findFeed) {
+		throw new Error('请勿重复订阅')
+	}
+
 	const record = new UserFeed({
 		code: feed.code,
 		originCode: feed.originCode,
 		user,
-		feed
+		feed,
+		name: name || feedOrigin.name
 	})
 	await record.save()
 	res.json({

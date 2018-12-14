@@ -10,6 +10,7 @@ const UserFeedSchema = new mongoose.Schema({
 	user: {type: ObjectId, ref: 'User'},
 	feed: {type: ObjectId, ref: 'Feed'},
 	originCode: String,
+	name: String,
 })
 
 UserFeedSchema.pre('save', function(next) {

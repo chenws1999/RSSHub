@@ -21,9 +21,9 @@ const FeedSchema = new mongoose.Schema({
 		key: String,
 		value: String
 	}],
-	signatureStr: String
+	signatureStr: {type: String, unique: true}
 })
-
+ 
 FeedSchema.pre('save', function(next) {
 	this.updateAt = Date.now()
 	next()

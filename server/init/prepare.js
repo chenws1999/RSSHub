@@ -116,4 +116,45 @@ async function main3 () {
 
 }
 
-main3()
+// main3()
+
+
+async function main4 () {
+	// const user = await User.findOne({name: 'test'})
+	const origin1 = new FeedOrigin({
+		code: 'bilibili',
+		name: 'b站',
+		priority: Enums.FeedOriginPriorityTypes.main,
+
+	})
+	await origin1.save()
+	const feedOrigin = new FeedOrigin({
+		parent: origin1,
+		code: 'partion',
+		name: '分区视频',
+		priority: Enums.FeedOriginPriorityTypes.second,
+		type: Enums.FeedOriginTypes.increase,
+		desc: '分区视频',
+		params: [{
+			name: '分区',
+			key: 'tid',
+			range: [[
+					{
+						label: '动画',
+					}
+				], 
+				[
+					{
+						label: 'MAD·AMV',
+						value: '24'
+					}
+				]
+			]
+		}]
+	})
+
+	await feedOrigin.save()
+
+}
+
+main4()
