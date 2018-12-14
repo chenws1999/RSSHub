@@ -1,16 +1,15 @@
 import Taro, { Component, Config } from '@tarojs/taro'
-import {Provider} from '@tarojs/redux'
-// import '@tarojs/async-await'
+import {setStore} from '@tarojs/redux'
+import '@tarojs/async-await'
+
+import dvaapp from './dva'
+const a = dvaapp
+setStore(dvaapp._store)
 
 import Index from './pages/index'
 
-import models from './models'
-import dvaapp from './dva'
 import './app.less'
 
-
-models.forEach(model => dvaapp.model(model))
-dvaapp.start()
 // 如果需要在 h5 环境中开启 React Devtools
 // 取消以下注释：
 // if (process.env.NODE_ENV !== 'production' && process.env.TARO_ENV === 'h5')  {
@@ -28,7 +27,8 @@ class App extends Component {
    */
   config: Config = {
     pages: [
-      'pages/index/index'
+      'pages/index/index',
+      'pages/login/index',
     ],
     window: {
       backgroundTextStyle: 'light',
@@ -50,9 +50,9 @@ class App extends Component {
   // 请勿修改此函数
   render () {
     return (
-      <Provider store={dvaapp._store}>
+      // <Provider store={dvaapp._store}>
         <Index />
-      </Provider>
+      // </Provider>
     )
   }
 }
