@@ -1,9 +1,9 @@
 import Taro from '@tarojs/taro'
 import qs from 'qs'
 
-// const baseUrl = 'http://192.168.1.4:4000/api'
+const baseUrl = 'http://192.168.1.4:4000/api'
 
-const baseUrl = 'http://192.168.0.135:4000/api'
+// const baseUrl = 'http://192.168.0.135:4000/api'
 
 let cookie = ''
 

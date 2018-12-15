@@ -99,6 +99,10 @@ export default {
                 }
             })
         },
+        * fetchFeedOriginItem ({payload: {params}}, {put, call}) {
+            const res = yield call(APIS.getFeedOriginItem.bind(null, params))
+            return res
+        },
         * subscribeOrigin ({payload: {data}}, {put, call}) {
             const res = yield call(APIS.subscribeFeed.bind(null, data))
             return res

@@ -21,7 +21,11 @@ async function getOverview (params = {}) {
 }
 
 async function getFeedOriginList (params) {
-    return request('/feed/originList?' + stringify(params) )
+    return request('/feed/origin/list?' + stringify(params) )
+}
+
+async function getFeedOriginItem (params) {
+    return request('/feed/origin/item?' + stringify(params) )
 }
 
 
@@ -63,8 +67,9 @@ export default {
     getOverview,
     getFeedContents,
     getFeedOriginList,
+    getFeedOriginItem,
     subscribeFeed,
     unsubscribeFeed,
     getPushList,
-    readPushRecord
+    readPushRecord,
 }

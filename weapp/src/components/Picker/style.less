@@ -1,0 +1,38 @@
+.label {
+    text-align: center; 
+    font-size: 36px;  
+}
+
+.PickerViewOuterBox {
+    background-color: rgba(0, 0, 0, 0.5);
+    position: fixed;
+    width: 100%;
+    height: 100vh;
+    top: 0;
+    left: 0;
+    z-index: 100;
+    > .main {
+        > .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 30px;
+            > View {
+                flex-grow: 1;
+                flex-basis: 0;
+                font-size: 34px;
+                &.confirm {
+                    color: #1AAD19;
+                    text-align: right;
+                }
+            }
+            
+        }
+        width: 100%;
+        background-color: white;
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform: translate(-50%, 0);
+    }
+}
