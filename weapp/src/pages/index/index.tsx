@@ -36,17 +36,24 @@ export default class Index extends Component<IndexProps, IndexState> {
 	constructor (props) {
 		super(props)
 		this.state = {
-			tabIndex: TabIndexTypes.home
+			tabIndex: null
 		}
 	}
 	componentWillMount() { }
 
 	componentDidMount() {
 		this.fetchUserInfo()
+		Taro.showShareMenu()
 	}
 
 	componentWillUnmount() { }
-
+	componentWillReceiveProps (nextProps) {
+		if (!this.props.user && nextProps.user) {
+			this.setState({
+				tabIndex: TabIndexTypes.home
+			})
+		}
+	}
 	componentDidShow() { }
 
 	componentDidHide() { }

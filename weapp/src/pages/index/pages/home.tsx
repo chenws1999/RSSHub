@@ -1,5 +1,5 @@
 import Taro, { Component, Config } from '@tarojs/taro'
-import { View, Text, Button } from '@tarojs/components'
+import { View, Text, Button,  Form } from '@tarojs/components'
 import { connect } from '@tarojs/redux'
 import {
     AtCard, AtTabs, AtTabsPane, AtLoadMore, AtAvatar, AtList,
@@ -10,7 +10,7 @@ import {
 import MyPicker from '../../../components/Picker/index'
 import { PushRecord, User, UserFeed, FeedOrigin, Feed, FeedOriginPriority, FeedOriginParamTypes, FeedOriginParam } from '../../propTypes'
 import './styles/home.less'
-
+import Api from '../../../service'
 interface ReduxUserFeed extends UserFeed {
     updateTimeStr: string,
     updateCount: number
@@ -337,6 +337,11 @@ export default class Home extends Component<HomeProps, HomeState> {
             customFeedName: v
         })
     }
+    getFormId (e) {
+        const {formId} = e.detail
+        console.log(formId, 'tsest')
+        Api.postFormId({formId}).then(res => console.log(res))
+    }
     render() {
         const { myFeedList, user, originList } = this.props
         const { tabIndex, selectedOrigin, originParamsObj, customFeedName } = this.state
@@ -390,7 +395,11 @@ export default class Home extends Component<HomeProps, HomeState> {
             </View>
             <View className="right">
                 <View className="top">{user.name || '未命名'}</View>
-                <View className="bottom"></View>
+                <View className="bottom">
+                    <Form reportSubmit onSubmit={this.getFormId.bind(this)}>
+                        <Button formType="submit" onf>签到</Button>
+                    </Form>
+                </View>
             </View>
         </View>
 

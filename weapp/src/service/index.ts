@@ -60,6 +60,13 @@ async function readPushRecord (data) {
     })
 }
 
+async function postFormId (data) {
+    return request('/push/formId?', {
+        data,
+        method: 'POST'
+    })
+}
+
 export default {
     login,
     getMineInfo,
@@ -72,4 +79,5 @@ export default {
     unsubscribeFeed,
     getPushList,
     readPushRecord,
+    postFormId
 }

@@ -46,7 +46,15 @@ export default class PushList extends Component<PushListProps, PushListState> {
   componentDidMount () { 
     this.fetchPushList()
   }
-  componentWillUnmount () { }
+  componentWillUnmount () { 
+    this.props.dispatch({
+      type: 'center/saveData',
+      payload: {
+        pushList: [],
+        hasMore: true,
+      }
+    })
+  }
   fetchPushList (after ?: string | Object) {
     const {dispatch} = this.props
     const res = dispatch({

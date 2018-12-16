@@ -105,7 +105,19 @@ export default class Index extends Component<{}, LoginState> {
             Taro.redirectTo({
               url: redirectUrl || '/pages/index/index',
             })
+            return
           }
+          Taro.showToast({
+            title: '登录失败',
+            icon: '',
+            duration: 1000
+          })
+        }).catch(e => {
+          Taro.showToast({
+            title: '登录失败',
+            icon: '',
+            duration: 1000
+          })
         })
       },
     })
