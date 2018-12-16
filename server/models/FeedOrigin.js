@@ -19,7 +19,7 @@ const FeedOriginSchema = new mongoose.Schema({
 	params: [{
 		paramType: String, // 参数输入类型 (input, select)
 		name: String,
-		key: String,
+		key: {type: String, unique: true},
 		range: [{
 			label: String,
 			value: String,
@@ -28,7 +28,9 @@ const FeedOriginSchema = new mongoose.Schema({
 				value: String
 			}]
 		}]
-	}]
+	}],
+	routePath: String,
+	updateInterval: {type: Number, default: 3600},
 })
 
 FeedOriginSchema.pre('save', function (next) {

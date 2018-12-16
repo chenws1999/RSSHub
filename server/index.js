@@ -10,6 +10,7 @@ const Redis      = require('ioredis')
 const RedisStore = require('connect-redis')(session)
 const settings   = require('./config/settings')
 const http = require('http')
+const logger = require('morgan')
 
 require('./lib/passport')
 
@@ -74,6 +75,7 @@ app.use(function (req, res, next) {
 	next()
 })
 
+app.use(logger('dev'))
 // // serve静态文件
 // app.use(rootname + '/werecruit/static', express.static(
 // 	path.join(__dirname, '../recruitdist'),

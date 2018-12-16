@@ -7,7 +7,8 @@ const FeedItemSchema = new mongoose.Schema({
 	createAt: {type: Date, default: Date.now},
 	updateAt: {type: Date, default: Date.now},
 	snapshot: {type: ObjectId, ref: 'Snapshot', required: true},
-	feedSnapshot: {type: String, unique: true},
+	// feedSnapshot: {type: String, unique: true},
+	signature: {type: String, unique: true},
 	feed: {type: ObjectId, ref: 'Feed', required: true},
 	feedType: String,
 	title: String,
@@ -15,6 +16,7 @@ const FeedItemSchema = new mongoose.Schema({
 	desc: String,
 	author: String,
 	pubDate: {type: Date},
+	isPrecise: {type: Number, default: 0}, // 是否是精确的更新时间
 	items: [{
 		title: String,
 		link: String,
@@ -29,7 +31,7 @@ FeedItemSchema.pre('save', function(next) {
 	next()
 })
 
-FeedItemSchema.pre('update', function() {
+FeedItemSchema.pre('updateMany', function() {
 	this.update({}, {$set: {updateAt: Date.now()}})
 })
 

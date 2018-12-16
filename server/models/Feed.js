@@ -6,22 +6,26 @@ const ObjectId = Schema.ObjectId
 const FeedSchema = new mongoose.Schema({
 	createAt: {type: Date, default: Date.now},
 	updateAt: {type: Date, default: Date.now},
-	origin: {type: ObjectId, ref: 'FeedOrigin'},
-	originCode: {type: String},
-	originType: String,
+	origin: {type: ObjectId, ref: 'FeedOrigin', required: true},
+	originCode: {type: String, required: true},
+	originType: {type: String, required: true},
+	nextFetch: {type: Date, default: Date.now},
+	fetchStatus: {type: String, required: true}, // 拉取的状态
+
 	lastUpdate: {type: Date, default: Date.now}, // 最近一次源更新
 	lastFetch: {type: Date}, // 最近一次请求是否更新
 	lastSnapshot: {type: ObjectId, ref: 'Snapshot'}, // 最近一次更新的快照
 	lastUpdateCount: Number,
 
 	stop: {type: Number, default: 0}, // 关闭源
-	// isNew: {type: Number, default: 1}, // 是否为新feed
 	params: [{
 		name: String,
-		key: String,
-		value: String
+		key: {type: String, required: true},
+		value: {type: String, required: true}
 	}],
-	signatureStr: {type: String, unique: true}
+	signatureStr: {type: String, unique: true, required: true},
+	routePath: String, //存放代码文件的路径
+	updateInterval: {type: Number, default: 3600}, // 更新时间间隔 单位 秒
 })
  
 FeedSchema.pre('save', function(next) {

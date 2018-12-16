@@ -75,6 +75,17 @@ exports.errHandler = function (err, req, res, next) {
 	// console.log(err)
 }
 
+exports.getFeedOriginItem = async function (req, res) {
+	const {originId} = req.query
+	
+	const origin = await FeedOrigin.findById(originId)
+
+	res.json({
+		code: 0,
+		feedOrigin: origin
+	})
+}
+
 exports.getFeedOriginList = async function (req, res) {
 	const limit = 10
 	const {after} = req.query
@@ -114,8 +125,8 @@ const getPickerValue = (rangeArr, pickerValue) => {
 	if (!rangeArr || !rangeArr.length || !pickerValue || !pickerValue.length) {
 		return null
 	}
-	const id = pickerValue.shift()
-	const findOne = rangeArr.find(obj => obj._id === id)
+	const index = pickerValue.shift()
+	const findOne = rangeArr[index]
 	if (!findOne) {
 		return null
 	}
@@ -127,7 +138,7 @@ const getPickerValue = (rangeArr, pickerValue) => {
 }
 
 exports.subscribeFeed =  async function (req, res) {
-	const {originId, name, postParams = []} = req.body
+	const {originId, userFeedId, name, postParams = []} = req.body
 	const user = req.user
 	const feedOrigin = await FeedOrigin.findById(originId)
 	
@@ -137,7 +148,7 @@ exports.subscribeFeed =  async function (req, res) {
 	if (feedOrigin.priority === Enums.FeedOriginPriorityTypes.main) {
 		throw new Error('暂不支持订阅一级源')
 	}
-	const count = await UserFeed.count({user})
+	const count = await UserFeed.countDocuments({user})
 
 	if (count >= settings.subscribeLimit) {
 		throw new Error('超过订阅上限')
@@ -154,11 +165,11 @@ exports.subscribeFeed =  async function (req, res) {
 				throw new Error('loss param filed data: ' + key)
 			}
 			if ([FeedOriginParamTypes.multiSelect, FeedOriginParamTypes.select].includes(paramType)) {
-				const v = getPickerValue(range, postValue)
-				if (!v) {
+				const findOne = getPickerValue(range, postValue)
+				if (!findOne) {
 					throw new Error(`param: ${key}'s value invalid` )
 				}
-				value = v
+				value = findOne.value
 			}
 			params.push({
 				value,
@@ -174,26 +185,41 @@ exports.subscribeFeed =  async function (req, res) {
 		feed = new Feed({
 			origin: feedOrigin,
 			originCode: feedOrigin.code,
-			originType: feedOrigin.Type,
+			originType: feedOrigin.type,
+			fetchStatus: Enums.FeedFetchStatus.new,
 			params,
-			signatureStr
+			signatureStr,
+			routePath: feedOrigin.routePath,
+			updateInterval: feedOrigin.updateInterval
 		})
 		await feed.save()
 	}
 
-	const findFeed = await UserFeed.findOne({feed, user})
-	if (findFeed) {
-		throw new Error('请勿重复订阅')
+	let record = null
+	const findRecord = await UserFeed.findOne({feed, user})
+	if (findRecord) {
+		if (findRecord._id.toString() === userFeedId) {
+			record = findRecord
+		} else {
+			throw new Error('已订阅该源 请勿重复订阅')
+		}
 	}
-
-	const record = new UserFeed({
-		code: feed.code,
+	if (!record) {
+		record = new UserFeed({})
+	}
+	Object.assign(record, {
 		originCode: feed.originCode,
+		userfeed: user._id + feed._id,
 		user,
 		feed,
-		name: name || feedOrigin.name
+		name: name || feedOrigin.name,
+		nextFetch: feed.nextFetch
 	})
 	await record.save()
+
+	if (userFeedId && record._id.toString() !== userFeedId) {
+		await UserFeed.findOneAndRemove({_id: userFeedId})
+	}
 	res.json({
 		code: 0,
 	})
@@ -219,7 +245,7 @@ exports.unsubscribeFeed =  async function (req, res) {
 }
 
 exports.getPushRecordList = async function (req, res) {
-	const {after} = req.params
+	const {after} = req.query
 	const unread = parseInt(req.query.unread)
 	const limit = 5
 	const user = req.user
@@ -354,7 +380,7 @@ exports.getMineInfo = async (req, res) => {
 	res.json({
 		code: 0,
 		user,
-		_csrf: req.csrfToken()
+		// _csrf: req.csrfToken()
 	})
 }
 
@@ -362,7 +388,7 @@ exports.getOverview = async (req, res) => {
 	const user = req.user
 
 	const unreadPush = await UserSnapshot.findOne({user}).sort({createAt: -1}).lean()
-	const unreadCount = await UserSnapshot.count({user, unread: 1})
+	const unreadCount = await UserSnapshot.countDocuments({user, unread: 1})
 	const feedList = await await UserFeed.find({user})
 		.populate({path: 'feed', populate: 'origin'})
 		.sort({createAt: -1})
@@ -394,4 +420,58 @@ exports.getMyFeedList = async function (req, res) {
 	})
 }
 
+
+const getUserFormId = async (key) => {
+	let formId = null
+	const listStr = await redis.get(key)
+	if (listStr) {
+		const list = JSON.parse(listStr)
+		const findIndex = list.findIndex(obj => obj.expireAt > Date.now())
+		if (findIndex > -1) {
+			formId = list[findIndex].formId
+		}
+		const leftList = findIndex > -1 ? list.slice(findIndex + 1) : ''
+		await redis.set(key, JSON.stringify(leftList))
+	}
+	return formId
+}
+
+const setUserFormId = async (key, formIdObj) => {
+	const listStr = await redis.get(key)
+	const list = JSON.parse(listStr) || []
+	list.push(formIdObj)
+	const expire = (7 * 24 * 60 * 60 - 2 * 60) * 1000
+	await redis.set(key, JSON.stringify(list), 'PX', expire)
+}
+
+
+exports.recieveFormId = async function (req, res) {
+	const {formId} = req.body
+	if (!formId) {
+		throw new Error('invalid formId')
+	}
+	const redisKey = RedisKeys.userFormIds(req.user._id)
+	const expireAt = Date.now() + (7 * 24 * 60 * 60) * 1000
+	await setUserFormId(redisKey, {formId, expireAt})
+
+	// const {sendTemplate} = require('../lib/wechat')
+	// const flag = await sendTemplate({
+	// 	templateId: settings.templateId,
+	// 	openId: req.user.openId,
+	// 	// openId: 'ovfMO0cZbKbWjDixj2RybEoneLsU',
+	// 	formId,
+	// 	data: {
+	// 		keyword1: {
+	// 			value: 'test'
+	// 		},
+	// 		keyword2: {
+	// 			value: 'test3'
+	// 		}
+	// 	}
+	// })
+	// console.log(flag, 'push')
+	res.json({
+		code: 0
+	})
+}
 //todo 

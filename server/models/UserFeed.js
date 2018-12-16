@@ -6,11 +6,12 @@ const ObjectId = Schema.ObjectId
 const UserFeedSchema = new mongoose.Schema({
 	createAt: {type: Date, default: Date.now},
 	updateAt: {type: Date, default: Date.now},
-	userfeed: {type: String, unique: true},
-	user: {type: ObjectId, ref: 'User'},
-	feed: {type: ObjectId, ref: 'Feed'},
-	originCode: String,
+	userfeed: {type: String, unique: true, required: true},
+	user: {type: ObjectId, ref: 'User', required: true},
+	feed: {type: ObjectId, ref: 'Feed', required: true},
+	originCode: {type: String, required: true},
 	name: String,
+	nextFetch: {type: Date, required: true}, //下次更新时间
 })
 
 UserFeedSchema.pre('save', function(next) {

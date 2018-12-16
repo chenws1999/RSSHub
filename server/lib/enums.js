@@ -10,7 +10,10 @@ module.exports = {
 		subscribeCount: uid => `usersubscribeCount:${uid}`,
 		isExcuteSnapshot: _ => 'excutesnapshot',
 		freshFeedList: _ => 'freshfeedlist',
-		emailCode: email => `emailcode:${email}`
+		emailCode: email => `emailcode:${email}`,
+		accessToken: _ => 'weappaccesstoken',
+		userFormIds: uid => `templateformids:${uid}`,
+		newlyUserFeeds: _ => 'newlyUserFeeds'
 	},
 	FeedOriginTypes: {
 		diff: 'diff',
@@ -24,5 +27,10 @@ module.exports = {
 		input: 'input',
 		select: 'select',
 		multiSelect: 'multiSelect',
+	},
+	FeedFetchStatus: {
+		new: 'new', // 新建 尚未进行初始化拉取
+		init: 'init', // 进行了初始化拉取
+		normal: 'normal', // 正常
 	}
 }

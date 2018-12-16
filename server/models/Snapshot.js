@@ -8,8 +8,8 @@ const Snapshot = new mongoose.Schema({
     updateAt: {type: Date, default: Date.now},
     startTime: {type: Date, default: Date.now},
     endTime: {type: Date},
-    userCount: {type: Number, default: 0},
-    taskCount: {type: Number, default: 0},
+    // userCount: {type: Number, default: 0}, // 快照关联的用户数
+    feedCount: {type: Number, default: 0}, // 快照关联的feed数
 })
 
 Snapshot.pre('save', function(next) {
