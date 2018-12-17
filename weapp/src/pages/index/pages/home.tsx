@@ -69,8 +69,9 @@ const parseFeedParamsValue = (range, value) => {
 }
 
 
-@connect(({ center, loading }) => ({
+@connect(({ center, home }) => ({
     ...center,
+    ...home
 }), null)
 export default class Home extends Component<HomeProps, HomeState> {
 
@@ -81,6 +82,9 @@ export default class Home extends Component<HomeProps, HomeState> {
      * 对于像 navigationBarTextStyle: 'black' 这样的推导出的类型是 string
      * 提示和声明 navigationBarTextStyle: 'black' | 'white' 类型冲突, 需要显示声明类型
      */
+    static options = {
+        addGlobalClass: true
+      }
     config: Config = {
         navigationBarTitleText: '首页'
     }
@@ -112,7 +116,7 @@ export default class Home extends Component<HomeProps, HomeState> {
     }
     setReduxData(data) {
         this.props.dispatch({
-            type: 'center/saveData',
+            type: 'home/saveData',
             payload: data
         })
     }
@@ -129,7 +133,7 @@ export default class Home extends Component<HomeProps, HomeState> {
     fetchMyFeedList() {
         const { dispatch } = this.props
         const res = dispatch({
-            type: 'center/fetchMyFeedList',
+            type: 'home/fetchMyFeedList',
             payload: {
                 params: {
                 }
@@ -139,7 +143,7 @@ export default class Home extends Component<HomeProps, HomeState> {
     fetchFeedOriginList() {
         const { dispatch } = this.props
         const res = dispatch({
-            type: 'center/fetchFeedOriginList',
+            type: 'home/fetchFeedOriginList',
             payload: {
                 params: {
                     priority: FeedOriginPriority.main
@@ -150,7 +154,7 @@ export default class Home extends Component<HomeProps, HomeState> {
     subscribeOrigin(originId, postParams = {}, name = '', userFeedId = '') {
         const { dispatch } = this.props
         const res = dispatch({
-            type: 'center/subscribeOrigin',
+            type: 'home/subscribeOrigin',
             payload: {
                 data: {
                     originId,
@@ -168,7 +172,7 @@ export default class Home extends Component<HomeProps, HomeState> {
     unsubscribeOrigin(userFeedId: string) {
         const { dispatch } = this.props
         const res = dispatch({
-            type: 'center/unsubscribeOrigin',
+            type: 'home/unsubscribeOrigin',
             payload: {
                 data: {
                     userFeedId
@@ -184,7 +188,7 @@ export default class Home extends Component<HomeProps, HomeState> {
         const { feed } = userFeed
         const { dispatch } = this.props
         const res = dispatch({
-            type: 'center/fetchFeedOriginItem',
+            type: 'home/fetchFeedOriginItem',
             payload: {
                 params: {
                     originId: feed.origin

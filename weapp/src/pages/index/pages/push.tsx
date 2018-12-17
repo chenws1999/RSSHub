@@ -4,7 +4,7 @@ import {connect} from '@tarojs/redux'
 import {AtCard, AtLoadMore} from 'taro-ui'
 
 import {PushRecord} from '../../propTypes'
-import './style.less'
+import './styles/push.less'
 
 interface ReduxPushRecord extends PushRecord {
   pushTimeStr: string
@@ -24,19 +24,16 @@ interface PushListState {
 }
 
 
-@connect(({ center, loading}) => ({
+@connect(({ center, pushList, loading}) => ({
   ...center,
+  ...pushList,
   pushListLoading: loading.effects['center/fetchPushList']
 }), null)
 export default class PushList extends Component<PushListProps, PushListState> {
 
-  /**
-   * 指定config的类型声明为: Taro.Config
-   *
-   * 由于 typescript 对于 object 类型推导只能推出 Key 的基本类型
-   * 对于像 navigationBarTextStyle: 'black' 这样的推导出的类型是 string
-   * 提示和声明 navigationBarTextStyle: 'black' | 'white' 类型冲突, 需要显示声明类型
-   */
+  static options = {
+    addGlobalClass: true
+  }
   config: Config = {
     navigationBarTitleText: '首页'
   }
@@ -45,10 +42,11 @@ export default class PushList extends Component<PushListProps, PushListState> {
 
   componentDidMount () { 
     this.fetchPushList()
+    this.readAllPushRecord()
   }
   componentWillUnmount () { 
     this.props.dispatch({
-      type: 'center/saveData',
+      type: 'pushList/saveData',
       payload: {
         pushList: [],
         hasMore: true,
@@ -58,11 +56,19 @@ export default class PushList extends Component<PushListProps, PushListState> {
   fetchPushList (after ?: string | Object) {
     const {dispatch} = this.props
     const res = dispatch({
-      type: 'center/fetchPushList',
+      type: 'pushList/fetchPushList',
       payload: {
         params: {
           after
         }
+      }
+    })
+  }
+  readAllPushRecord () {
+    const {dispatch} = this.props
+    dispatch({
+      type: 'center/readAllPushRecord',
+      payload: {
       }
     })
   }
@@ -71,7 +77,7 @@ export default class PushList extends Component<PushListProps, PushListState> {
     const loadMoreStatus = pushListLoading ? 'loading' : (hasMore ? 'more' : 'noMore')
     const listend = pushList[pushList.length - 1]
     return (
-      <View className='index'>
+      <View className='pushRecordBox'>
         {pushList.map(item => {
           return <AtCard
             key={item._id}

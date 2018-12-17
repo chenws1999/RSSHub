@@ -9,7 +9,8 @@ import Home from './pages/home'
 import './index.less'
 
 interface IndexProps {
-	dispatch: (action: {}) => Promise<any>
+	dispatch: (action: {}) => Promise<any>,
+	unreadPushCount: number
 }
 
 interface IndexState {
@@ -48,9 +49,10 @@ export default class Index extends Component<IndexProps, IndexState> {
 
 	componentWillUnmount() { }
 	componentWillReceiveProps (nextProps) {
+		console.log('next propsf', nextProps)
 		if (!this.props.user && nextProps.user) {
 			this.setState({
-				tabIndex: TabIndexTypes.home
+				tabIndex: TabIndexTypes.overview
 			})
 		}
 	}
@@ -77,6 +79,7 @@ export default class Index extends Component<IndexProps, IndexState> {
 		})
 	}
 	render() {
+		const {unreadPushCount} = this.props
 		const { tabIndex } = this.state
 		return (
 			<View className='index' >
@@ -93,7 +96,7 @@ export default class Index extends Component<IndexProps, IndexState> {
 					fixed
 					tabList={[
 						{ title: '概览', iconType: 'credit-card'},
-						{ title: '通知', iconType: 'message'},
+						{ title: '通知', iconType: 'message', text: unreadPushCount || null},
 						{ title: '管理', iconType: 'home'}
 					]}
 					iconSize={20}

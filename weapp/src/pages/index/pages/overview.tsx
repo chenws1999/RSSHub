@@ -4,7 +4,7 @@ import { connect } from '@tarojs/redux'
 import { AtCard, AtList, AtListItem, AtSwipeAction } from 'taro-ui'
 
 import { Feed, PushRecord, UserFeed } from '../../propTypes'
-import './style.less'
+import './styles/overview.less'
 
 interface ReduxPushRecord extends PushRecord {
 	pushTimeStr: string
@@ -18,8 +18,8 @@ interface ReduxUserFeed extends UserFeed {
 
 interface OverViewProps {
 	feedList: ReduxUserFeed[],
-	unreadCount: number,
-	unreadPush: ReduxPushRecord,
+	unreadPushCount: number,
+	newlyPushRecord: ReduxPushRecord,
 	dispatch: (action: {}) => Promise<any>
 }
 
@@ -28,6 +28,9 @@ interface OverViewProps {
 }), null)
 export default class OverView extends Component<OverViewProps, {}>{
 
+	static options = {
+		addGlobalClass: true
+	}
 	config: Config = {
 	}
 
@@ -45,18 +48,19 @@ export default class OverView extends Component<OverViewProps, {}>{
 		})
 	}
 	render() {
-		const { feedList, unreadCount, unreadPush } = this.props
+		const { feedList, unreadPushCount, newlyPushRecord } = this.props
+		console.log(feedList)
 		return (
-			<View className='index' onClick={this.test}>
+			<View className='overviewBox' onClick={this.test}>
 				<AtCard
-					title="未读提醒"
-					note={unreadPush ? unreadPush.pushTimeStr : ''}
+					title="最新提醒"
+					note={newlyPushRecord ? newlyPushRecord.pushTimeStr : ''}
 				// thumb="bell"
 				>
 					{
-						unreadPush ?
+						newlyPushRecord ?
 							<View>
-
+								{newlyPushRecord.feeds.length}个源有更新哦!
 							</View> :
 							<View className="noData">
 								暂无数据
@@ -65,11 +69,11 @@ export default class OverView extends Component<OverViewProps, {}>{
 				</AtCard>
 				<AtCard
 					title="订阅源动态"
-					note={unreadPush ? unreadPush.pushTimeStr : ''}
+					// note={newlyPushRecord ? newlyPushRecord.pushTimeStr : ''}
 				// thumb="bell"
 				>
 					{
-						unreadPush ?
+						newlyPushRecord ?
 							<AtList>
 								{
 									feedList.map(userFeed => <AtSwipeAction
@@ -82,7 +86,7 @@ export default class OverView extends Component<OverViewProps, {}>{
 											}
 										]}
 									>
-										<AtListItem title={userFeed.name} extraText={userFeed.updateTimeStr}  note={`更新 ${userFeed.updateCount} +` }/>
+										<AtListItem title={userFeed.name} extraText={`更新 ${userFeed.updateCount} + 条`}  note={ '更新时间' + userFeed.undateTimeStr}/>
 									</AtSwipeAction>)
 								}
 							</AtList> :
