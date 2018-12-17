@@ -12,17 +12,17 @@ const settings = require('../config/settings.js')
 const Enums = require('../lib/enums')
 const redis = require('../lib/redis')
 
-const {RedisKeys, FeedOriginPriorityTypes, FeedOriginParamTypes} = Enums
+const { RedisKeys, FeedOriginPriorityTypes, FeedOriginParamTypes } = Enums
 
 const global = {
 	feedOriginTree: {}
 }
 
-function generateFeedSignatureStr (origin, params = []) {
+function generateFeedSignatureStr(origin, params = []) {
 	return origin._id + '?' + (params.map(obj => `${obj.key}=${obj.value}`).join('&'))
 }
 
-async function getFeedOriginTree () {
+async function getFeedOriginTree() {
 	const obj = {}
 	const feeds = await FeedOrigin.find().lean()
 	feeds.forEach((feed) => {
@@ -34,7 +34,7 @@ async function getFeedOriginTree () {
 				}
 			}
 			Object.assign(obj[key], feed)
-			
+
 		} else {
 			const key = feed.parent
 			if (!obj[key]) {
@@ -56,7 +56,7 @@ const toPromise = (func) => (...args) => new Promise((resolve, reject) => {
 			return reject(err)
 		}
 		resolve(res)
-	})	
+	})
 })
 
 exports.isLogin = async function (req, res, next) {
@@ -71,13 +71,13 @@ exports.isLogin = async function (req, res, next) {
 }
 
 exports.errHandler = function (err, req, res, next) {
-	res.json({code: -1, msg: err.message || 'server error'})
+	res.json({ code: -1, msg: err.message || 'server error' })
 	// console.log(err)
 }
 
 exports.getFeedOriginItem = async function (req, res) {
-	const {originId} = req.query
-	
+	const { originId } = req.query
+
 	const origin = await FeedOrigin.findById(originId)
 
 	res.json({
@@ -88,10 +88,10 @@ exports.getFeedOriginItem = async function (req, res) {
 
 exports.getFeedOriginList = async function (req, res) {
 	const limit = 10
-	const {after} = req.query
+	const { after } = req.query
 	const user = req.user
-	
-	const myFeeds = await UserFeed.find({user})
+
+	const myFeeds = await UserFeed.find({ user })
 	const codes = myFeeds.map(i => i.originCode)  //todo 缓存
 
 	const list = Object.values(global.feedOriginTree)
@@ -137,18 +137,18 @@ const getPickerValue = (rangeArr, pickerValue) => {
 	}
 }
 
-exports.subscribeFeed =  async function (req, res) {
-	const {originId, userFeedId, name, postParams = []} = req.body
+exports.subscribeFeed = async function (req, res) {
+	const { originId, userFeedId, name, postParams = [] } = req.body
 	const user = req.user
 	const feedOrigin = await FeedOrigin.findById(originId)
-	
+
 	if (!feedOrigin) {
 		throw new Error('invalid feild id')
 	}
 	if (feedOrigin.priority === Enums.FeedOriginPriorityTypes.main) {
 		throw new Error('暂不支持订阅一级源')
 	}
-	const count = await UserFeed.countDocuments({user})
+	const count = await UserFeed.countDocuments({ user })
 
 	if (count >= settings.subscribeLimit) {
 		throw new Error('超过订阅上限')
@@ -158,7 +158,7 @@ exports.subscribeFeed =  async function (req, res) {
 	const needParams = !!(feedOrigin.params && feedOrigin.params.length)
 	if (needParams) {
 		feedOrigin.params.forEach(obj => {
-			const {key, name, paramType, range} = obj
+			const { key, name, paramType, range } = obj
 			const postValue = postParams[key]
 			let value = postValue
 			if (!postValue) {
@@ -167,7 +167,7 @@ exports.subscribeFeed =  async function (req, res) {
 			if ([FeedOriginParamTypes.multiSelect, FeedOriginParamTypes.select].includes(paramType)) {
 				const findOne = getPickerValue(range, postValue)
 				if (!findOne) {
-					throw new Error(`param: ${key}'s value invalid` )
+					throw new Error(`param: ${key}'s value invalid`)
 				}
 				value = findOne.value
 			}
@@ -178,9 +178,9 @@ exports.subscribeFeed =  async function (req, res) {
 			})
 		})
 	}
-	
+
 	const signatureStr = generateFeedSignatureStr(feedOrigin, params)
-	let feed = await Feed.findOne({origin: feedOrigin, signatureStr})
+	let feed = await Feed.findOne({ origin: feedOrigin, signatureStr })
 	if (!feed) {
 		feed = new Feed({
 			origin: feedOrigin,
@@ -196,7 +196,7 @@ exports.subscribeFeed =  async function (req, res) {
 	}
 
 	let record = null
-	const findRecord = await UserFeed.findOne({feed, user})
+	const findRecord = await UserFeed.findOne({ feed, user })
 	if (findRecord) {
 		if (findRecord._id.toString() === userFeedId) {
 			record = findRecord
@@ -218,18 +218,18 @@ exports.subscribeFeed =  async function (req, res) {
 	await record.save()
 
 	if (userFeedId && record._id.toString() !== userFeedId) {
-		await UserFeed.findOneAndRemove({_id: userFeedId})
+		await UserFeed.findOneAndRemove({ _id: userFeedId })
 	}
 	res.json({
 		code: 0,
 	})
 }
 
-exports.unsubscribeFeed =  async function (req, res) {
-	const {userFeedId, feedId} = req.body
+exports.unsubscribeFeed = async function (req, res) {
+	const { userFeedId, feedId } = req.body
 	const user = req.user
 
-	const query = userFeedId ? {_id: userFeedId} : {feed: feedId, user}
+	const query = userFeedId ? { _id: userFeedId } : { feed: feedId, user }
 	const userFeed = await UserFeed.findOne(query)
 	if (!userFeed) {
 		throw new Error('invalid userfeed')
@@ -245,12 +245,12 @@ exports.unsubscribeFeed =  async function (req, res) {
 }
 
 exports.getPushRecordList = async function (req, res) {
-	const {after} = req.query
+	const { after } = req.query
 	const unread = parseInt(req.query.unread)
 	const limit = 5
 	const user = req.user
 
-	const query = {user}
+	const query = { user }
 	if (after) {
 		query.pushTime = {
 			$lt: after
@@ -259,7 +259,7 @@ exports.getPushRecordList = async function (req, res) {
 	if (unread) {
 		query.unread = 1
 	}
-	const list = await UserSnapshot.find(query).sort({pushTime: -1}).limit(limit)
+	const list = await UserSnapshot.find(query).sort({ pushTime: -1 }).limit(limit)
 	res.json({
 		code: 0,
 		list,
@@ -270,15 +270,21 @@ exports.getPushRecordList = async function (req, res) {
 
 exports.readPushRecord = async function (req, res) {
 	const user = req.user
-	const {recordId} = req.body
+	const { recordId } = req.body
 
-	const record = await UserSnapshot.findById(recordId)
-	if (!record || (record.user._id.toString() !== user._id)) {
-		throw new Error('无效或越权操作')
+	if (recordId) {
+		const record = await UserSnapshot.findById(recordId)
+		if (!record || (record.user._id.toString() !== user._id.toString())) {
+			throw new Error('无效或越权操作')
+		}
+		record.unread = 0
+		await record.save()
+	} else {
+		// const unreadRecords = await UserSnapshot.find({user, unread: 1})
+		// unreadRecords.forEach(record => record.unread = 0)
+		// console.log(unreadRecords)
+		await UserSnapshot.updateMany({user, unread: 1}, {unread: 0})
 	}
-
-	record.unread = 0
-	await record.save()
 
 	res.json({
 		code: 0,
@@ -288,10 +294,10 @@ exports.readPushRecord = async function (req, res) {
 
 exports.getFeedContentList = async function (req, res) {
 	const user = req.user
-	const {feed: feedId, after} = req.query
+	const { feed: feedId, after } = req.query
 	const limit = 10
 
-	const userFeed = await UserFeed.findOne({feed: feedId, user})
+	const userFeed = await UserFeed.findOne({ feed: feedId, user })
 	if (!userFeed) {
 		throw new Error('越权操作')
 	}
@@ -302,7 +308,7 @@ exports.getFeedContentList = async function (req, res) {
 			$lt: after
 		}
 	}
-	const list = await FeedItem.find(query).sort({createAt: -1}).limit(limit)
+	const list = await FeedItem.find(query).sort({ createAt: -1 }).limit(limit)
 	res.json({
 		code: 0,
 		list
@@ -310,7 +316,7 @@ exports.getFeedContentList = async function (req, res) {
 }
 
 exports.getRegistetCode = async (req, res) => {
-	const {email} = req.body
+	const { email } = req.body
 	if (!email) {
 		throw new Error('invalid email')
 	}
@@ -319,7 +325,7 @@ exports.getRegistetCode = async (req, res) => {
 	if (findOne) {
 		throw new Error('已发送,请勿频繁点击')
 	}
-	
+
 	const code = Math.random().toString(32).slice(2, 8).toUpperCase()
 	await redis.set(redisKey, code, 'EX', 5 * 60)
 
@@ -333,7 +339,7 @@ exports.login = async (req, res) => {
 	if (req.isAuthenticated()) {
 		throw new Error('已登录,请勿重复登录`')
 	}
-	const {code} = req.body
+	const { code } = req.body
 	const wxUrl = 'https://api.weixin.qq.com/sns/jscode2session'
 	const wxRes = await request(wxUrl, {
 		method: 'GET',
@@ -346,18 +352,18 @@ exports.login = async (req, res) => {
 		json: true
 	})
 	if (wxRes.errcode) {
-		throw new Error('wx server error: ' +  wxRes.errcode + wxRes.errmsg)
+		throw new Error('wx server error: ' + wxRes.errcode + wxRes.errmsg)
 	}
 
-	const {openid: openId, session_key: sessionKey} = wxRes
-	
-	let user = await User.findOne({openId})
+	const { openid: openId, session_key: sessionKey } = wxRes
+
+	let user = await User.findOne({ openId })
 	if (!user) {
 		user = new User({
 			openId,
 		})
 		await user.save()
-	} 
+	}
 	await toPromise(req.logIn.bind(req))(user)
 	req.session.sessionKey = sessionKey
 
@@ -387,16 +393,16 @@ exports.getMineInfo = async (req, res) => {
 exports.getOverview = async (req, res) => {
 	const user = req.user
 
-	const unreadPush = await UserSnapshot.findOne({user}).sort({createAt: -1}).lean()
-	const unreadCount = await UserSnapshot.countDocuments({user, unread: 1})
-	const feedList = await await UserFeed.find({user})
-		.populate({path: 'feed', populate: 'origin'})
-		.sort({createAt: -1})
+	const newlyPushRecord = await UserSnapshot.findOne({ user }).sort({ createAt: -1 }).lean()
+	const unreadCount = await UserSnapshot.countDocuments({ user, unread: 1 })
+	const feedList = await await UserFeed.find({ user })
+		.populate({ path: 'feed', populate: 'origin' })
+		.sort({ createAt: -1 })
 		.lean()
 
 	res.json({
 		code: 0,
-		unreadPush,
+		newlyPushRecord,
 		unreadCount,
 		feedList,
 	})
@@ -407,10 +413,10 @@ exports.getMyFeedList = async function (req, res) {
 	const pn = parseInt(req.query.pn)
 	const limit = 15
 	const user = req.user
-	
-	const list = await UserFeed.find({user})
-		.populate({path: 'feed', populate: 'origin'})
-		.sort({createAt: -1})
+
+	const list = await UserFeed.find({ user })
+		.populate({ path: 'feed', populate: 'origin' })
+		.sort({ createAt: -1 })
 		.skip(limit * pn)
 		.limit(limit)
 
@@ -446,13 +452,13 @@ const setUserFormId = async (key, formIdObj) => {
 
 
 exports.recieveFormId = async function (req, res) {
-	const {formId} = req.body
+	const { formId } = req.body
 	if (!formId) {
 		throw new Error('invalid formId')
 	}
 	const redisKey = RedisKeys.userFormIds(req.user._id)
 	const expireAt = Date.now() + (7 * 24 * 60 * 60) * 1000
-	await setUserFormId(redisKey, {formId, expireAt})
+	await setUserFormId(redisKey, { formId, expireAt })
 
 	// const {sendTemplate} = require('../lib/wechat')
 	// const flag = await sendTemplate({
