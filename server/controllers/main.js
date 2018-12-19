@@ -150,7 +150,7 @@ exports.subscribeFeed = async function (req, res) {
 	}
 	const count = await UserFeed.countDocuments({ user })
 
-	if (count >= settings.subscribeLimit) {
+	if (!userFeedId && count >= settings.subscribeLimit) {
 		throw new Error('超过订阅上限')
 	}
 
@@ -195,6 +195,11 @@ exports.subscribeFeed = async function (req, res) {
 		await feed.save()
 	}
 
+	const oldRecord = await UserFeed.findById(userFeedId)
+	if (!oldRecord) {
+		throw new Error('invalid userfeedid')
+	}
+
 	let record = null
 	const findRecord = await UserFeed.findOne({ feed, user })
 	if (findRecord) {
@@ -217,8 +222,8 @@ exports.subscribeFeed = async function (req, res) {
 	})
 	await record.save()
 
-	if (userFeedId && record._id.toString() !== userFeedId) {
-		await UserFeed.findOneAndRemove({ _id: userFeedId })
+	if (oldRecord && record._id.toString() !== oldRecord._id.toString()) {
+		await oldRecord.remove()
 	}
 	res.json({
 		code: 0,

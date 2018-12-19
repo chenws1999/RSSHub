@@ -14,9 +14,20 @@ const { FeedOriginTypes, RedisKeys, FeedFetchStatus } = Enums
 
 const feedMapTypes = {
 	updated: 1,
-	notUpdated: 2
+	notUpdated: 2,
+	pendding: 3,
 }
 
+const threadCount = 10 // 并发请求数
+const queryUserLimit = 100 //一次性从数据库中请求的用户数
+
+const mockPendding = (time = 1000) => {
+	return new Promise((resolve) => {
+		setTimeout(_ => {
+			resolve()
+		}, time)
+	})
+}
 
 async function main() {
 	console.log('start ----------------------' + new Date())
@@ -30,16 +41,47 @@ async function main() {
 	const feedNextUpdateTimeCache = {}
 
 	const userCount = await User.countDocuments()
-	const interval = 100
+	let resolvedUser = 0
+	let cursor = -1
+	let leftThreadCount = threadCount
+
+	console.log('user count:', userCount)
+	const afterFeedPendding = (feedId) => {
+		let time = 0
+		return new Promise((resolve, reject) => {
+			const func = () => {
+				if (feedCacheMap[feedId] !== feedMapTypes.pendding) {
+					return resolve(feedCacheMap[feedId])
+				}
+				time ++
+				if (time >= 6) {
+					reject(new Error('等待超时'))
+				} else {
+					setTimeout(func, 1000)
+				}
+			}
+			func()
+		})
+	} 
 
 	const handleUserFeedTask = async (task, taskUpdatedFeeds = []) => {
 		
-		if (feedCacheMap[task.feed] === feedMapTypes.updated) {
+		let cacheType = feedCacheMap[task.feed.toString()]
+		if (cacheType === feedMapTypes.pendding) {
+			console.log(`feedid ${task.feed} request pendding`)
+			cacheType = await afterFeedPendding(task.feed.toString())
+		}
+
+		if (cacheType === feedMapTypes.updated) {
 			//todo 
 			console.log(`缓存命中: ${task.feed}`)
 			const feed = await Feed.findById(task.feed).lean()
 			taskUpdatedFeeds.push(feed)
-		} else if (!feedCacheMap[task.feed]) {
+		} else if (!cacheType) {
+			console.log(`set feedid ${task.feed} request pendding`)
+			feedCacheMap[task.feed.toString()] = feedMapTypes.pendding
+			await mockPendding(2000)
+
 			const feed = await Feed.findById(task.feed)
 			const res = await handleCrawl(feed)
 			const {updateTime, updateCount} = await handleFeedRes(feed, res, snapshot)
@@ -67,36 +109,92 @@ async function main() {
 		await task.save()
 	}
 
-	for (let i = 0; (i * interval) < userCount; i++) {
-		const users = await User.find().skip(i * interval).limit(interval)
-		for (let user of users) {
-			console.log(`update user's tasks: ${user.openId}/${user.name}`)
-			const tasks = await UserFeed.find({ user, nextFetch: { $lte: new Date() } })
-			// const tasks = await UserFeed.find({user})
-			const taskUpdatedFeeds = []
-			console.log(`user task count: ${tasks.length}`)
-			for (let task of tasks) {
-				await handleUserFeedTask(task, taskUpdatedFeeds)
-			}
-
-			if (taskUpdatedFeeds.length) {
-				pushToUser(user, snapshot, taskUpdatedFeeds)
-			}
-			// todo push
-			console.log('push', taskUpdatedFeeds)
+	let users = [], skipCount = 0, isQueryDb = false
+	const getUser = async (cursor) => {
+		if (cursor >= userCount) {
+			return null
 		}
+		if (isQueryDb) {
+			return new Promise((resolve, reject) => {
+				const func = () => {
+					if (!isQueryDb) {
+						return resolve(getUser(cursor))
+					}
+					setTimeout(func, 500)
+				}
+				func()
+			})
+		}
+		if ((skipCount - 1) < cursor) {
+			console.log(`query user from db, ${skipCount}~${skipCount + queryUserLimit}`)
+			isQueryDb = true
+			users = await User.find().sort({createAt: 1}).skip(skipCount).limit(queryUserLimit)
+			skipCount += queryUserLimit
+			isQueryDb = false
+		}
+		const radixCount = skipCount - queryUserLimit
+		const realCursor = radixCount < 0 ? cursor : (cursor - radixCount)
+		return users[realCursor]
 	}
 
+	const handleUserTasks = async () => {
+		leftThreadCount --
+		const nowCursor = ++cursor
+
+		console.log('user cursor:', nowCursor)
+		const user = await getUser(nowCursor)
+		if (!user) {
+			leftThreadCount ++
+			return
+		}
+		console.log(`update user's tasks: ${user.openId}/${user.name}`)
+		const tasks = await UserFeed.find({ user, nextFetch: { $lte: new Date() } })
+		// const tasks = await UserFeed.find({user})
+		const taskUpdatedFeeds = []
+		console.log(`user task count: ${tasks.length}`)
+		for (let task of tasks) {
+			await handleUserFeedTask(task, taskUpdatedFeeds)
+		}
+
+		if (taskUpdatedFeeds.length) {
+			pushToUser(user, snapshot, taskUpdatedFeeds)
+		}
+		console.log('push', taskUpdatedFeeds)
+		resolvedUser ++
+		leftThreadCount ++
+	}
+
+	for (let j =0; j < threadCount; j ++) {
+		handleUserTasks()
+	}
+
+	const scheduleTasks = () => {
+		return new Promise((resolve, reject) => {
+			const func = () => {
+				if (resolvedUser === userCount) {
+					return resolve()
+				}
+				if (leftThreadCount && (cursor < userCount) ) {
+					handleUserTasks()
+				}
+				setTimeout(func, 500)
+			}
+			func()
+		})
+	}
+
+	await scheduleTasks()
+	console.log('end tasks')
 	// todo api配合
-	const newlyUserFeedsKey = RedisKeys.newlyUserFeeds()
-	const newlyUserFeedTasks = await redis.get(newlyUserFeedsKey)
-	if (newlyUserFeedTasks) {
-		await redis.set(newlyUserFeedsKey, '')
-		const taskList = JSON.parse(newlyUserFeedTasks)
-		for (let task of taskList) {
-			await handleUserFeedTask(task)
-		}
-	}
+	// const newlyUserFeedsKey = RedisKeys.newlyUserFeeds()
+	// const newlyUserFeedTasks = await redis.get(newlyUserFeedsKey)
+	// if (newlyUserFeedTasks) {
+	// 	await redis.set(newlyUserFeedsKey, '')
+	// 	const taskList = JSON.parse(newlyUserFeedTasks)
+	// 	for (let task of taskList) {
+	// 		await handleUserFeedTask(task)
+	// 	}
+	// }
 
 	snapshot.feedCount = Object.keys(feedCacheMap).length
 	snapshot.endTime = Date.now()
@@ -173,6 +271,7 @@ async function handleFeedRes(feed, feedRes, snapshot) {
 	let time = null, updateCount = 0
 	const { item: newItems } = feedRes
 	console.log('handle resolve http res', newItems.length)
+
 	if (newItems.length) {
 		if (feed.originType === FeedOriginTypes.diff) {
 			const findOne = await FeedItem.findOne({ feed, snapshot: feed.lastSnapshot }).lean()
@@ -228,16 +327,16 @@ async function handleFeedRes(feed, feedRes, snapshot) {
 
 			if (time) {
 				try {
-				const feedItems = diffItems.map(item => new FeedItem({
-					feed,
-					snapshot,
-					feedSnapshot: feed._id + snapshot._id,
-					feedType: feed.type,
-					puDate: time,
-					isPrecise,
-					...item
-				}))
-				await FeedItem.create(feedItems)
+					const feedItems = diffItems.map(item => new FeedItem({
+						feed,
+						snapshot,
+						feedSnapshot: feed._id + snapshot._id,
+						feedType: feed.type,
+						puDate: time,
+						isPrecise,
+						...item
+					}))
+					await FeedItem.create(feedItems)
 				} catch (e) {
 					console.log('save feed items error: ', e.message)
 				}
