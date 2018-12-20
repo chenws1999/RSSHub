@@ -112,6 +112,7 @@ router.get('/bilibili/mall/ip/:id', require('./routes/bilibili/mallIP'));
 router.get('/bilibili/ranking/:rid?/:day?', require('./routes/bilibili/ranking'));
 router.get('/bilibili/user/channel/:uid/:cid', require('./routes/bilibili/userChannel'));
 router.get('/bilibili/topic/:topic', require('./routes/bilibili/topic'));
+router.get('/bilibili/audio/:id', require('./routes/bilibili/audio'));
 
 // bangumi
 router.get('/bangumi/calendar/today', require('./routes/bangumi/calendar/today'));
@@ -235,6 +236,7 @@ if (config.disqus && config.disqus.api_key) {
 // Twitter
 if (config.twitter && config.twitter.consumer_key && config.twitter.consumer_secret && config.twitter.access_token && config.twitter.access_token_secret) {
     router.get('/twitter/user/:id', require('./routes/twitter/user'));
+    router.get('/twitter/list/:id/:name', require('./routes/twitter/list'));
 } else {
     logger.warn('Twitter RSS is disabled for lacking config.');
 }
@@ -327,6 +329,7 @@ router.get('/yande.re/post/popular_recent/:period', require('./routes/yande.re/p
 
 // 纽约时报
 router.get('/nytimes', require('./routes/nytimes/index'));
+router.get('/nytimes/morning_post', require('./routes/nytimes/morning_post'));
 
 // 3dm
 router.get('/3dm/:name/:type', require('./routes/3dm/game'));
@@ -357,7 +360,7 @@ router.get('/tingshuitz/guangzhou', require('./routes/tingshuitz/guangzhou'));
 router.get('/tingshuitz/dongguan', require('./routes/tingshuitz/dongguan'));
 
 // MIUI 更新
-router.get('/miui/:device/:type?', require('./routes/miui/index'));
+router.get('/miui/:device/:type?/:region?', require('./routes/miui/index'));
 
 // 米哈游
 router.get('/mihoyo/bh3/:type', require('./routes/mihoyo/bh3'));
@@ -536,6 +539,11 @@ router.get('/dpu/wlfw/news/:type?', require('./routes/universities/dpu/wlfw/news
 // 东南大学
 router.get('/seu/radio/academic', require('./routes/universities/seu/radio/academic'));
 router.get('/seu/yzb/:type', require('./routes/universities/seu/yzb'));
+router.get('/seu/cse/:type?', require('./routes/universities/seu/cse'));
+
+// 南京航空航天大学
+router.get('/nuaa/jwc/:type?', require('./routes/universities/nuaa/jwc/jwc'));
+router.get('/nuaa/cs/:type?', require('./routes/universities/nuaa/cs/index'));
 
 // 哈尔滨工业大学
 router.get('/hit/jwc', require('./routes/universities/hit/jwc'));
@@ -549,6 +557,8 @@ router.get('/sjtu/seiee/bjwb/major_select', require('./routes/universities/sjtu/
 router.get('/sjtu/seiee/bjwb/major_transfer', require('./routes/universities/sjtu/seiee/bjwb/major_transfer'));
 router.get('/sjtu/seiee/bjwb/postgraduate', require('./routes/universities/sjtu/seiee/bjwb/postgraduate'));
 router.get('/sjtu/seiee/bjwb/abroad', require('./routes/universities/sjtu/seiee/bjwb/abroad'));
+router.get('/sjtu/seiee/bjwb/international', require('./routes/universities/sjtu/seiee/bjwb/international'));
+router.get('/sjtu/seiee/xsb/:type?', require('./routes/universities/sjtu/seiee/xsb'));
 
 router.get('/sjtu/gs/tzgg/:type?', require('./routes/universities/sjtu/gs/tzgg'));
 
@@ -587,6 +597,16 @@ router.get('/heu/ugs/news/:author?/:category?', require('./routes/universities/h
 
 // 重庆大学
 router.get('/cqu/jwc/announcement', require('./routes/universities/cqu/jwc/announcement'));
+
+// 南京信息工程大学
+router.get('/nuist/bulletin/:category?', require('./routes/universities/nuist/bulletin'));
+router.get('/nuist/jwc/:category?', require('./routes/universities/nuist/jwc'));
+router.get('/nuist/yjs/:category?', require('./routes/universities/nuist/yjs'));
+router.get('/nuist/xgc', require('./routes/universities/nuist/xgc'));
+router.get('/nuist/scs/:category?', require('./routes/universities/nuist/scs'));
+router.get('/nuist/lib', require('./routes/universities/nuist/library/lib'));
+router.get('/nuist/sese/:category?', require('./routes/universities/nuist/sese'));
+router.get('/nuist/cas/:category?', require('./routes/universities/nuist/cas'));
 
 // 成都信息工程大学
 router.get('/cuit/cxxww/:type?', require('./routes/universities/cuit/cxxww'));
@@ -645,6 +665,12 @@ router.get('/scut/jwc/:category?', require('./routes/universities/scut/jwc'));
 
 // 温州商学院
 router.get('/wzbc/:type?', require('./routes/universities/wzbc/news'));
+
+// 河南大学
+router.get('/henu/:type?', require('./routes/universities/henu/news'));
+
+// 南开大学
+router.get('/nku/jwc/:type?', require('./routes/universities/nku/jwc/index'));
 
 // ifanr
 router.get('/ifanr/:channel?', require('./routes/ifanr/index'));
@@ -724,6 +750,7 @@ router.get('/houxu/:type/:id', require('./routes/houxu/houxu'));
 // 老司机
 router.get('/laosiji/hot', require('./routes/laosiji/hot'));
 router.get('/laosiji/feed', require('./routes/laosiji/feed'));
+router.get('/laosiji/hotshow/:id', require('./routes/laosiji/hotshow'));
 
 // 99% Invisible
 router.get('/99percentinvisible/transcript', require('./routes/99percentinvisible/transcript'));
@@ -773,6 +800,7 @@ router.get('/geekpark/breakingnews', require('./routes/geekpark/breakingnews'));
 
 // 百度
 router.get('/baidu/doodles', require('./routes/baidu/doodles'));
+router.get('/baidu/topwords/:boardId?', require('./routes/baidu/topwords'));
 
 // 搜狗
 router.get('/sogou/doodles', require('./routes/sogou/doodles'));
@@ -887,6 +915,29 @@ router.get('/cpu/jwc', require('./routes/cpu/jwc'));
 router.get('/cpu/yjsy', require('./routes/cpu/yjsy'));
 
 // 字幕组
-router.get('/zimuzu/resource/:id', require('./routes/zimuzu/resource'));
+router.get('/zimuzu/resource/:id?', require('./routes/zimuzu/resource'));
+
+// 虎嗅
+router.get('/huxiu/tag/:id', require('./routes/huxiu/tag'));
+
+// Steam
+router.get('/steam/search/:params', require('./routes/steam/search'));
+router.get('/steam/news/:appids', require('./routes/steam/news'));
+
+// 扇贝
+router.get('/shanbay/checkin/:id', require('./routes/shanbay/checkin'));
+
+// Facebook
+router.get('/facebook/page/:id', require('./routes/facebook/page'));
+
+// 停电通知
+router.get('/tingdiantz/95598/:orgNo/:provinceNo/:outageStartTime/:outageEndTime/:scope?', require('./routes/tingdiantz/95598'));
+router.get('/tingdiantz/95598/:orgNo/:provinceNo/:scope?', require('./routes/tingdiantz/95598'));
+
+// 36kr
+router.get('/36kr/search/article/:keyword', require('./routes/36kr/search/article'));
+
+// icourse163
+router.get('/icourse163/newest', require('./routes/icourse163/newest'));
 
 module.exports = router;

@@ -17,6 +17,28 @@ async function load(link) {
     const serverOffset = date.getTimezoneOffset() / 60;
     const pubDate = new Date(date.getTime() - 60 * 60 * 1000 * (timeZone + serverOffset)).toUTCString();
 
+    // 还原图片地址
+    $('img').each((index, elem) => {
+        const $elem = $(elem);
+        const src = $elem.attr('data-original-src');
+        if (src && src !== '') {
+            $elem.attr('src', `https:${src}`);
+        }
+        $elem.attr('referrerpolicy', 'no-referrer');
+    });
+    // 去除样式
+    $('.image-container, .image-container-fill').removeAttr('style');
+    // 处理视频
+    $('.video-package').each((index, elem) => {
+        const $item = $(elem);
+        const desc = $item.find('.video-description').html();
+        const url = $item.attr('data-video-url');
+
+        $item.html(`
+            <p>${desc}</p>
+            <iframe frameborder="0" src="${url}" allowFullScreen="true"></iframe>
+        `);
+    });
     // 提取内容
     const description = $('.show-content-free').html();
 
