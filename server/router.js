@@ -34,6 +34,8 @@ apiRouter.get('/feed/contents', catchError(mainCtrl.getFeedContentList))
 apiRouter.get('/push/List', catchError(mainCtrl.getPushRecordList))
 apiRouter.post('/push/read', catchError(mainCtrl.readPushRecord))
 apiRouter.post('/push/formId', catchError(mainCtrl.recieveFormId))
+
 const rootRouter = express.Router()
 rootRouter.use('/api', apiRouter, mainCtrl.errHandler)
+
 module.exports = rootRouter

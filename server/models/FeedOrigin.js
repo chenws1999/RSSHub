@@ -19,7 +19,7 @@ const FeedOriginSchema = new mongoose.Schema({
 	params: [{
 		paramType: String, // 参数输入类型 (input, select)
 		name: String,
-		key: {type: String, unique: true},
+		key: {type: String},
 		range: [{
 			label: String,
 			value: String,

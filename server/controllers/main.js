@@ -195,9 +195,12 @@ exports.subscribeFeed = async function (req, res) {
 		await feed.save()
 	}
 
-	const oldRecord = await UserFeed.findById(userFeedId)
-	if (!oldRecord) {
-		throw new Error('invalid userfeedid')
+	let oldRecord = null
+	if (userFeedId) {
+		oldRecord = await UserFeed.findOne({_id: userFeedId, user})
+		if (!oldRecord) {
+			throw new Error('invalid userfeedid')
+		}
 	}
 
 	let record = null
