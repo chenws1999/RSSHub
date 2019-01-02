@@ -9,7 +9,14 @@ const UserSnapshotSchema = new mongoose.Schema({
 	pushTime: {type: Date, default: Date.now},
 	user: {type: ObjectId, ref: 'User'},
 	snapshot: {type: ObjectId, ref: 'Snapshot'},
-	feeds: [Object],
+	feeds: [{
+		feed: {type: ObjectId, ref: 'Feed'},
+		name: String, // 用户自定义的名字 userfeed相关
+		lastUpdate: {type: Date, default: Date.now}, // 最近一次源更新
+		lastFetch: {type: Date}, // 最近一次请求是否更新
+		lastSnapshot: {type: ObjectId, ref: 'Snapshot'}, // 最近一次更新的快照
+		lastUpdateCount: Number,
+	}],
 	unread: {type: Number, default: 1} // 
 })
 

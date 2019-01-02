@@ -11,19 +11,17 @@ const FeedItemSchema = new mongoose.Schema({
 	signature: {type: String, unique: true},
 	feed: {type: ObjectId, ref: 'Feed', required: true},
 	feedType: String,
+	collectedCount: {type: Number, default: 0}, //被收藏数量 
+	refCount: {type: Number, default: 0}, // 被userfeedItem引用的次数
+
 	title: String,
 	link: String,
-	desc: String,
 	author: String,
 	pubDate: {type: Date},
 	isPrecise: {type: Number, default: 0}, // 是否是精确的更新时间
-	items: [{
-		title: String,
-		link: String,
-		desc: String,
-		author: String,
-		pubDate: {type: Date},
-	}]
+	imgs: [String],
+	desc: String,
+	contentType: Number, // 1, 2
 })
 
 FeedItemSchema.pre('save', function(next) {

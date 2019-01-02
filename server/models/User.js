@@ -4,21 +4,23 @@ const ObjectId = Schema.ObjectId
 
 
 const User = new mongoose.Schema({
-    createAt: {type: Date, default: Date.now},
-    updateAt: {type: Date, default: Date.now},
-    openId: {type: String, unique: true},
-    name: String,
-    lastLogin: String,
-    
+	createAt: {type: Date, default: Date.now},
+	updateAt: {type: Date, default: Date.now},
+	openId: {type: String, unique: true},
+	name: String,
+	lastLogin: String,
+	
+	collectCount: {type: Number, default: 0},
+	subscribeCount: {type: Number, default: 0}
 })
 
 User.pre('save', function(next) {
-    this.updateAt = Date.now()
-    next()
+	this.updateAt = Date.now()
+	next()
 })
 
 User.pre('update', function() {
-    this.update({}, {$set: {updateAt: Date.now()}})
+	this.update({}, {$set: {updateAt: Date.now()}})
 })
 
 module.exports = mongoose.model('User', User)

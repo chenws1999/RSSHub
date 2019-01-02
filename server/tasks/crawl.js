@@ -1,3 +1,5 @@
+const cherrio = require('cheerio')
+
 const User = require('../models/User')
 const Feed = require('../models/Feed')
 const UserFeed = require('../models/UserFeed')
@@ -17,6 +19,7 @@ const feedMapTypes = {
 	notUpdated: 2,
 	pendding: 3,
 }
+
 
 const threadCount = 10 // 并发请求数
 const queryUserLimit = 100 //一次性从数据库中请求的用户数
@@ -39,6 +42,7 @@ async function main() {
 	await snapshot.save()
 	const feedCacheMap = {}  // todo redis
 	const feedNextUpdateTimeCache = {}
+	const feedUpdatedItemsCache = {}
 
 	const userCount = await User.countDocuments()
 	let resolvedUser = 0
@@ -64,49 +68,63 @@ async function main() {
 		})
 	} 
 
-	const handleUserFeedTask = async (task, taskUpdatedFeeds = []) => {
-		
-		let cacheType = feedCacheMap[task.feed.toString()]
-		if (cacheType === feedMapTypes.pendding) {
-			console.log(`feedid ${task.feed} request pendding`)
-			cacheType = await afterFeedPendding(task.feed.toString())
-		}
+	const handleUserFeedTask = async (task, taskUpdatedFeeds = [], taskUpdatedFeedItems = []) => {
+		try {
 
-		if (cacheType === feedMapTypes.updated) {
-			//todo 
-			console.log(`缓存命中: ${task.feed}`)
-			const feed = await Feed.findById(task.feed).lean()
-			taskUpdatedFeeds.push(feed)
-		} else if (!cacheType) {
-			console.log(`set feedid ${task.feed} request pendding`)
-			feedCacheMap[task.feed.toString()] = feedMapTypes.pendding
-			await mockPendding(2000)
-
-			const feed = await Feed.findById(task.feed)
-			const res = await handleCrawl(feed)
-			const {updateTime, updateCount} = await handleFeedRes(feed, res, snapshot)
-
-			const isUpdated = !!updateTime && (feed.fetchStatus !== FeedFetchStatus.new)  // 是否通知更新
-			if (updateTime) {
-				feed.lastUpdateCount = updateCount
-				feed.lastUpdate = updateTime
-				feed.lastSnapshot = snapshot
+			let cacheType = feedCacheMap[task.feed.toString()]
+			if (cacheType === feedMapTypes.pendding) {
+				console.log(`feedid ${task.feed} request pendding`)
+				cacheType = await afterFeedPendding(task.feed.toString())
 			}
 
-			feed.fetchStatus = feed.fetchStatus === FeedFetchStatus.new ? FeedFetchStatus.init : FeedFetchStatus.normal
-			feed.lastFetch = Date.now()
-			feed.nextFetch = Date.now() + (feed.updateInterval * 1000)
-			await feed.save()
-
-			if (isUpdated) {
+			if (cacheType === feedMapTypes.updated) {
+				//todo 
+				console.log(`缓存命中: ${task.feed}`)
+				const feed = await Feed.findById(task.feed).lean()
 				taskUpdatedFeeds.push(feed)
-			}
-			feedCacheMap[feed._id] = isUpdated ? feedMapTypes.updated : feedMapTypes.notUpdated
-			feedNextUpdateTimeCache[feed._id] = feed.nextFetch
-		}
+				taskUpdatedFeedItems.push(feedUpdatedItemsCache[feed._id])
+			} else if (!cacheType) {
+				console.log(`set feedid ${task.feed} request pendding`)
+				feedCacheMap[task.feed.toString()] = feedMapTypes.pendding
+				// await mockPendding(2000)
 
-		task.nextFetch = feedNextUpdateTimeCache[task.feed]
-		await task.save()
+				const feed = await Feed.findById(task.feed)
+				const res = await handleCrawl(feed)
+				const {updateTime, updateCount, fetchItems, feedItems} = await handleFeedRes(feed, res, snapshot)
+
+				const isUpdated = !!updateTime && (feed.fetchStatus !== FeedFetchStatus.new)  // 是否通知更新
+				if (updateTime) {
+					feed.lastUpdateCount = updateCount
+					feed.lastUpdate = updateTime
+					feed.lastSnapshot = snapshot
+					feed.lastItems = fetchItems
+				}
+
+				feed.fetchStatus = feed.fetchStatus === FeedFetchStatus.new ? FeedFetchStatus.init : FeedFetchStatus.normal
+				feed.lastFetch = Date.now()
+				feed.nextFetch = Date.now() + (feed.updateInterval * 1000)
+				await feed.save()
+
+				if (isUpdated) {
+					taskUpdatedFeeds.push(feed)
+					taskUpdatedFeedItems.push(feedItems)
+				}
+				feedUpdatedItemsCache[feed._id] = isUpdated ? feedItems : null
+				feedCacheMap[feed._id] = isUpdated ? feedMapTypes.updated : feedMapTypes.notUpdated
+				feedNextUpdateTimeCache[feed._id] = feed.nextFetch
+			}
+
+			task.nextFetch = feedNextUpdateTimeCache[task.feed]
+			await task.save()
+
+		} catch (e) {
+			console.log(`user feed ${task._id}/ ${task.user} /${task.fee} task error \n ------------- \n`)
+			console.error(e)
+			const key = task.feed.toString()
+			if (feedCacheMap[key] === feedMapTypes.pendding) {
+				feedCacheMap[key] = null
+			}
+		}
 	}
 
 	let users = [], skipCount = 0, isQueryDb = false
@@ -141,27 +159,33 @@ async function main() {
 		leftThreadCount --
 		const nowCursor = ++cursor
 
-		console.log('user cursor:', nowCursor)
-		const user = await getUser(nowCursor)
-		if (!user) {
-			leftThreadCount ++
-			return
-		}
-		console.log(`update user's tasks: ${user.openId}/${user.name}`)
-		const tasks = await UserFeed.find({ user, nextFetch: { $lte: new Date() } })
-		// const tasks = await UserFeed.find({user})
-		const taskUpdatedFeeds = []
-		console.log(`user task count: ${tasks.length}`)
-		for (let task of tasks) {
-			await handleUserFeedTask(task, taskUpdatedFeeds)
-		}
+		try {
 
-		if (taskUpdatedFeeds.length) {
-			pushToUser(user, snapshot, taskUpdatedFeeds)
-		}
-		console.log('push', taskUpdatedFeeds)
-		resolvedUser ++
-		leftThreadCount ++
+			// console.log('user cursor:', nowCursor)
+			const user = await getUser(nowCursor)
+			if (!user) {
+				leftThreadCount ++
+				return
+			}
+			console.log(`update user's tasks: ${user.openId}/${user.name}`)
+			// const tasks = await UserFeed.find({ user, nextFetch: { $lte: new Date() } })
+			const tasks = await UserFeed.find({user})
+			const taskUpdatedFeeds = [], taskUpdatedFeedItems = []
+			console.log(`user task count: ${tasks.length}`)
+			for (let task of tasks) {
+				await handleUserFeedTask(task, taskUpdatedFeeds, taskUpdatedFeedItems)
+			}
+
+			if (taskUpdatedFeeds.length) {
+				pushToUser(user, snapshot, taskUpdatedFeeds, taskUpdatedFeedItems.reduce( (arr, arr2) => arr.concat(arr2)), [])
+			}
+			console.log('push', taskUpdatedFeeds)
+			resolvedUser ++
+			leftThreadCount ++
+		} catch (e) {
+			console.log(`resolve user  error, cursor: ${nowCursor} `)
+			leftThreadCount ++
+		}		
 	}
 
 	for (let j =0; j < threadCount; j ++) {
@@ -174,7 +198,10 @@ async function main() {
 				if (resolvedUser === userCount) {
 					return resolve()
 				}
-				if (leftThreadCount && (cursor < userCount) ) {
+				// if (leftThreadCount && (cursor < userCount) ) {
+				// 	handleUserTasks()
+				// }
+				while (leftThreadCount && (cursor < userCount)) {
 					handleUserTasks()
 				}
 				setTimeout(func, 500)
@@ -248,7 +275,7 @@ function compareFeedItems(oldItems, newItems) {
 		return newItems
 	}
 
-	const getKey = ({ title = '', link = '', desc = '' }) => title + link + desc.slice(0, 10)
+	const getKey = ({ title = '', link = ''}) => title + link
 	const map = oldItems.reduce((obj, item) => {
 		obj[getKey(item)] = true
 		return obj
@@ -258,7 +285,7 @@ function compareFeedItems(oldItems, newItems) {
 }
 
 
-const getFeedItemKey = ({ title = '', link = '', desc = '', pubDate }) => title + link + desc.slice(0, 10)
+const getFeedItemKey = (feedId, { title = '', link = ''}) => `${feedId}?${title.slice(0, 15)}&${link}`
 
 /**
  * 
@@ -268,87 +295,144 @@ const getFeedItemKey = ({ title = '', link = '', desc = '', pubDate }) => title 
  * @returns {Date}
  */
 async function handleFeedRes(feed, feedRes, snapshot) {
-	let time = null, updateCount = 0
-	const { item: newItems } = feedRes
+	let time = null, updateCount = 0, createdFeedItems = []
+	const {FeedOriginTypes, FeedFetchStatus} = Enums
+	const notSaveDiffItems =  feed.fetchStatus ===  FeedFetchStatus.new
+	const { item: newItems, title: feedTitle, link: feedLink } = feedRes
 	console.log('handle resolve http res', newItems.length)
 
+	newItems.forEach(item => {
+		if (item.pubDate === 'Invalid Date') {
+			item.pubDate = undefined
+		}
+	})
 	if (newItems.length) {
 		if (feed.originType === FeedOriginTypes.diff) {
-			const findOne = await FeedItem.findOne({ feed, snapshot: feed.lastSnapshot }).lean()
-			const oldItems = findOne ? findOne.items : []
+			const oldItems = feed.lastItems || []
 			const diffItems = compareFeedItems(oldItems, newItems)
 
 			console.log('diff type feed: ', diffItems.length)
 			if (diffItems.length) {
 				time = Date.now()
 				updateCount = diffItems.length
-				const feedItemRecord = new FeedItem({
-					feed,
-					snapshot,
-					feedSnapshot: feed._id + snapshot._id,
-					feedType: feed.type,
-					items: newItems
-				})
-				await feedItemRecord.save()
+				if (!notSaveDiffItems) {
+					const diffItemsRecords = diffItems.map((item, index) => {
+						const obj = resolveResDescFeild(item.description)
+						return new FeedItem({
+							feed,
+							snapshot,
+							feedSnapshot: feed._id + snapshot._id,
+							feedType: feed.type,
+							signature: `${feed._id}?${Date.now()}&${index}`,
+							...item,
+							...obj
+						})
+					})
+					createdFeedItems = await FeedItem.create(diffItemsRecords)
+				}
+				
 			}
+
 		} else {
 			const i = newItems[0]
 			let diffItems = []
 			let isPrecise = 0
 
-			if (i.pubDate) {
-				let newPubDate = null  // todo 考虑数据重复
+			if (i.pubDate && i.pubDate !== 'Invalid Date') {
+				// todo 考虑数据重复
 				const feedUpdateTime = new Date(feed.lastUpdate)
-				newItems.forEach(item => {
-					const a = new Date(item.pubDate)
-					const b = new Date(newPubDate)
-					if (a > b) {
-						newPubDate = item.pubDate
-					}
-					if (a > feedUpdateTime) {
-						diffItems.push(item)
-					}
+				newItems.sort((a, b) => {
+					return (new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime())
 				})
-				console.log('increase type has pubData', newPubDate, feedUpdateTime, diffItems.length)
+				newItems.every(item => {
+					const t1 = new Date(item.pubDate)
+					if (t1 > feedUpdateTime) {
+						diffItems.push(item)
+						return true
+					}
+					return false
+				})
+				console.log('increase type has pubDate',feedUpdateTime, diffItems.length)
 				if (diffItems.length) {
-					time = newPubDate
+					time = diffItems[0].pubDate
 					updateCount = diffItems.length
 					isPrecise = 1
 				}
 			} else {
-				const oldItems = await FeedItem.find({ feed }).lean()  // todo 数据量大的时候拆分
-				diffItems = compareFeedItems(newItems, oldItems)
-				console.log('increase type dont has pubData: ',  diffItems.length)
+				const oldItems = feed.lastItems || []
+				diffItems = compareFeedItems(oldItems, newItems)
+				console.log('increase type dont has pubDate: ',  diffItems.length)
 				if (diffItems.length) {
 					time = Date.now()
 					updateCount = diffItems.length
 				}
 			}
 
-			if (time) {
+			if (time && !notSaveDiffItems) {
 				try {
-					const feedItems = diffItems.map(item => new FeedItem({
-						feed,
-						snapshot,
-						feedSnapshot: feed._id + snapshot._id,
-						feedType: feed.type,
-						puDate: time,
-						isPrecise,
-						...item
-					}))
-					await FeedItem.create(feedItems)
+					const feedItems = diffItems.map(item => {
+						const obj = resolveResDescFeild(item.description)
+						return new FeedItem({
+							feed,
+							snapshot,
+							feedSnapshot: feed._id + snapshot._id,
+							feedType: feed.type,
+							pubDate: Date.now(),
+							isPrecise,
+							signature: getFeedItemKey(feed._id, item),
+							...item,
+							...obj,
+						})
+					})
+					createdFeedItems = await FeedItem.create(feedItems)
 				} catch (e) {
 					console.log('save feed items error: ', e.message)
+					// throw e
+					time = null
+					updateCount = 0
 				}
 			}
 		}
 	}
 	return {
 		updateTime: time,
-		updateCount
+		updateCount,
+		fetchItems: newItems,
+		feedItems: createdFeedItems
 	}
 }
 
+const containerId = 'balala-container-123'
+const textLenghtLimit = 450
+function resolveResDescFeild (htmlStr = '') {
+	const $ = cherrio.load(`<div id="${containerId}">${htmlStr}</div>`)
+
+	const htmlText = $(`#${containerId}`).text()
+	const trimText = htmlText ?  htmlText.replace(/\s/g, '') : ''
+
+	let contentType = Enums.FeedItemTypes.digest,
+		desc = htmlText
+	if (trimText.length > textLenghtLimit) {
+		contentType = Enums.FeedItemTypes.long
+		desc = trimText.slice(0, textLenghtLimit)
+	}
+
+	const imgs = []
+	$('img').each(function (i) {
+		if (i <= 2) {
+			const src = $(this).attr('src')
+			const newSrc = settings.baseUrl +  '/api/source/img?src=' + encodeURIComponent(src)
+			// $(this).attr('src', newSrc)
+			imgs.push(newSrc)
+		}
+	})
+
+	return {
+		contentType,
+		imgs,
+		desc,
+	}
+}
 
 main()
 

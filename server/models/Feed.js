@@ -9,6 +9,7 @@ const FeedSchema = new mongoose.Schema({
 	origin: {type: ObjectId, ref: 'FeedOrigin', required: true},
 	originCode: {type: String, required: true},
 	originType: {type: String, required: true},
+	originName: {type: String}, //默认名称
 	nextFetch: {type: Date, default: Date.now},
 	fetchStatus: {type: String, required: true}, // 拉取的状态
 
@@ -16,8 +17,15 @@ const FeedSchema = new mongoose.Schema({
 	lastFetch: {type: Date}, // 最近一次请求是否更新
 	lastSnapshot: {type: ObjectId, ref: 'Snapshot'}, // 最近一次更新的快照
 	lastUpdateCount: Number,
+	lastItems: [{
+		title: String,
+		link: String,
+		author: String,
+		pubDate: {type: Date},
+	}],
 
 	stop: {type: Number, default: 0}, // 关闭源
+	subscribedCount: {type: Number, default: 0},
 	params: [{
 		name: String,
 		key: {type: String, required: true},
@@ -26,6 +34,7 @@ const FeedSchema = new mongoose.Schema({
 	signatureStr: {type: String, unique: true, required: true},
 	routePath: String, //存放代码文件的路径
 	updateInterval: {type: Number, default: 3600}, // 更新时间间隔 单位 秒
+
 })
  
 FeedSchema.pre('save', function(next) {

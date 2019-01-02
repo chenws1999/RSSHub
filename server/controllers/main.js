@@ -7,11 +7,13 @@ const Feed = require('../models/Feed')
 const UserFeed = require('../models/UserFeed')
 const UserSnapshot = require('../models/UserSnapshot')
 const FeedItem = require('../models/FeedItem')
+const UserCollect = require('../models/UserCollect')
+const UserFeedItem = require('../models/UserFeedItem')
 
 const settings = require('../config/settings.js')
 const Enums = require('../lib/enums')
 const redis = require('../lib/redis')
-
+const {feedService} = require('./service')
 const { RedisKeys, FeedOriginPriorityTypes, FeedOriginParamTypes } = Enums
 
 const global = {
@@ -148,9 +150,8 @@ exports.subscribeFeed = async function (req, res) {
 	if (feedOrigin.priority === Enums.FeedOriginPriorityTypes.main) {
 		throw new Error('暂不支持订阅一级源')
 	}
-	const count = await UserFeed.countDocuments({ user })
 
-	if (!userFeedId && count >= settings.subscribeLimit) {
+	if (!userFeedId && user.subscribeCount >= settings.subscribeLimit) {
 		throw new Error('超过订阅上限')
 	}
 
@@ -186,6 +187,7 @@ exports.subscribeFeed = async function (req, res) {
 			origin: feedOrigin,
 			originCode: feedOrigin.code,
 			originType: feedOrigin.type,
+			originName: feedOrigin.name,
 			fetchStatus: Enums.FeedFetchStatus.new,
 			params,
 			signatureStr,
@@ -224,10 +226,13 @@ exports.subscribeFeed = async function (req, res) {
 		nextFetch: feed.nextFetch
 	})
 	await record.save()
+	await feedService.afterSubscribeFeed(record)
 
 	if (oldRecord && record._id.toString() !== oldRecord._id.toString()) {
 		await oldRecord.remove()
+		await feedService.afterUnsubscribeFeed(record)
 	}
+
 	res.json({
 		code: 0,
 	})
@@ -246,9 +251,29 @@ exports.unsubscribeFeed = async function (req, res) {
 		throw new Error('越权操作')
 	}
 	await userFeed.remove()
+	await feedService.afterUnsubscribeFeed(userFeed)
 
 	res.json({
 		code: 0,
+	})
+}
+
+
+exports.getPushFeedItemList = async function (req, res) {
+	const {lastPubDate} = req.query
+	const query = {
+		user: req.user,
+	}
+	if (lastPubDate) {
+		query.pubDate = {
+			$gt: lastPubDate
+		}
+	}
+	const list = await UserFeedItem.find(query).sort({pubDate: -1}).limit(15).populate('feedItem')
+	// const list = await FeedItem.find({user: req.user}).limit(10)
+	res.json({
+		code: 0,
+		list
 	})
 }
 
@@ -434,6 +459,27 @@ exports.getMyFeedList = async function (req, res) {
 	})
 }
 
+exports.collectFeedItem = async function (req, res) {
+	const {feedItemId, userFeedItemId} = req.body
+	const user = req.user
+	const newRecord = new UserCollect({
+		user,
+		feedItemId,
+		uniqueKey: user._id + feedItemId
+	})
+	await newRecord.save()
+	await FeedItem.update({_id: feedItemId}, {$inc: {
+		collectedCount: 1
+	}})
+	await User.update({_id: user._id}, {
+		$inc: {
+			collectCount: 1
+		}
+	})
+	return res.json({
+		code: 0
+	})
+}
 
 const getUserFormId = async (key) => {
 	let formId = null
@@ -489,3 +535,22 @@ exports.recieveFormId = async function (req, res) {
 	})
 }
 //todo 
+
+
+//todo 设置whitelist 用户访问频率限制
+exports.fetchCrosFile = async function (req, res) {
+	const {src} = req.query
+	if (!src) {
+		throw new Error('invalid source')
+	}
+	const resFile = await request(src, {
+		encoding: null,
+		resolveWithFullResponse: true
+	})
+	// console.log(Object.keys(resFile), resFile.headers)
+	res.header('Content-Type', resFile.headers['content-type'])
+	res.send(resFile.body)
+	// res.json({
+	// 	code: 0
+	// })
+}

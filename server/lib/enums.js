@@ -13,7 +13,8 @@ module.exports = {
 		emailCode: email => `emailcode:${email}`,
 		accessToken: _ => 'weappaccesstoken',
 		userFormIds: uid => `templateformids:${uid}`,
-		newlyUserFeeds: _ => 'newlyUserFeeds'
+		newlyUserFeeds: _ => 'newlyUserFeeds',
+		userCollections: uid => `usercollections:${uid}`
 	},
 	FeedOriginTypes: {
 		diff: 'diff',
@@ -32,5 +33,9 @@ module.exports = {
 		new: 'new', // 新建 尚未进行初始化拉取
 		init: 'init', // 进行了初始化拉取
 		normal: 'normal', // 正常
+	},
+	FeedItemTypes: {
+		digest: 1, //简短
+		long: 2 // 长篇
 	}
 }

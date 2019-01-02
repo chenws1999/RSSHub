@@ -10,8 +10,11 @@ const FeedItem = require('../models/FeedItem')
 const settings = require('../config/settings.js')
 const Enums = require('../lib/enums')
 
-mongoose.connect('mongodb://localhost:27017/balala', { useNewUrlParser: true })
-
+if (settings.mongouser) {
+	mongoose.connect(settings.mongouri, {user: settings.mongouser, pass: settings.mongopass, useNewUrlParser: true})
+} else {
+	mongoose.connect(settings.mongouri, {useMongoClient:true, useNewUrlParser: true})
+}
 const bzPartionRange = [
 	{
 		"label": "动画",
@@ -486,7 +489,7 @@ const config = {
 		name: '微博',
 		children: {
 			hotlist: {
-				name: '热搜榜',
+				name: '微博热搜榜',
 				type: Enums.FeedOriginTypes.diff,
 				desc: '微博热点追踪',
 				routePath: 'weibo/search/hot',
@@ -518,7 +521,7 @@ const config = {
 				name: '公众号',
 				type: Enums.FeedOriginTypes.increase,
 				desc: '公众号更新提醒',
-				routePath: 'wechat/wasi',
+				routePath: 'tencent/wechat/wasi',
 				updateInterval: 60 * 60 * 4,
 				params: [{
 					name: '公众号id',
@@ -549,7 +552,7 @@ const config = {
 		name: '知乎',
 		children: {
 			hotlist: {
-				name: '热榜',
+				name: '知乎热榜',
 				type: Enums.FeedOriginTypes.diff,
 				desc: '知乎er们在关注什么!!',
 				routePath: 'zhihu/hotlist',
@@ -569,6 +572,30 @@ const config = {
 			},
 		},
 	},
+	a9vg: {
+		name: 'a9vg News 游戏新闻',
+		children: {
+			latermovie: {
+				name: 'a9vg最新新闻',
+				type: Enums.FeedOriginTypes.increase,
+				desc: '游戏新闻...',
+				routePath: 'a9vg/a9vg',
+				updateInterval: 60 * 60 * 24,
+			},
+		},
+	},
+	// netease: {
+	// 	name: '网易',
+	// 	children: {
+	// 		latermovie: {
+	// 			name: '网易云音乐歌单',
+	// 			type: Enums.FeedOriginTypes.increase,
+	// 			desc: '歌单更新啦',
+	// 			routePath: 'douban/later',
+	// 			updateInterval: 60 * 60 * 24,
+	// 		},
+	// 	},
+	// },
 	// douyu: {
 	// 	name: '斗鱼',
 	// 	children: {
@@ -601,7 +628,8 @@ async function main() {
 
 		const childCodes = Object.keys(value1.children || {})
 		for (let childCode of childCodes) {
-			let origin2 = await FeedOrigin.findOne({ code: childCode })
+			// console.log(childCode, 'child')
+			let origin2 = await FeedOrigin.findOne({ code: `${originCode}:${childCode}` })
 			const value2 = value1.children[childCode]
 			if (!origin2) {
 				origin2 = new FeedOrigin({
@@ -610,8 +638,11 @@ async function main() {
 					priority: Enums.FeedOriginPriorityTypes.second,
 					...value2
 				})
-				await origin2.save()
+			} else {
+				Object.assign(origin2, value2)
 			}
+			// console.log(origin2)
+			await origin2.save()
 		}
 	}
 }
