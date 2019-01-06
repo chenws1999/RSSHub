@@ -18,14 +18,19 @@ const getIdStr = (item) => {
 	return item.toString()
 }
 
+
+//todo 加数据库锁
 async function main (user, snapshot, feedList, feedItemList) {
 	const idList = feedList.map(feed => feed._id)
 	const validUserFeeds = await UserFeed.find({user, feed: {$in: idList}}).lean()
-	const validFeeds = []
-	feedList.forEach(feed => {
+	
+	const validPushFeeds = []
+	const userFeedItems = []
+	const validFeedItemIds = []
+	feedList.forEach((feed, index) => {
 		const userFeed = validUserFeeds.find(o => o.feed.toString() === feed._id.toString())
 		if (userFeed) {
-			validFeeds.push({
+			validPushFeeds.push({
 				lastUpdate: feed.lastUpdate,
 				lastFetch: feed.lastFetch,
 				lastSnapshot: feed.lastSnapshot,
@@ -33,39 +38,33 @@ async function main (user, snapshot, feedList, feedItemList) {
 				feed: feed._id,
 				name: userFeed.name || feed.originName
 			})
+			const feedItems = feedItemList[index]
+			feedItems.forEach(feedItem => {
+				const userFeedItem = new UserFeedItem({
+					user,
+					snapshot,
+					feed,
+					feedItem: feedItem._id,
+					pubDate: feedItem.pubDate,
+					unique: user._id + feedItem._id,
+					feedOriginType: feed.originType,
+					feedIcon: feed.icon,
+					feedName: userFeed.name || feed.name
+				})
+				userFeedItems.push(userFeedItem)
+				validFeedItemIds.push(feedItem._id)
+			})
 		}
 	})
-	if (validFeeds.length) {
+	if (validPushFeeds.length) {
 		const userSnapshot = new UserSnapshot({
 			user,
 			snapshot,
 			userSnapshot: user._id + snapshot._id,
-			feeds: validFeeds,
+			feeds: validPushFeeds,
 		})
 		await userSnapshot.save()
 	}
-
-	const userFeedItems = []
-	const validFeedItemIds = []
-	feedItemList.forEach(feedItem => {
-		const findOne = validFeeds.find(obj => {
-			// console.log(obj.feed, feedItem.feed, feedItem)
-			console.log(getIdStr(obj.feed), getIdStr(feedItem.feed), getIdStr(obj.feed)=== getIdStr(feedItem.feed) )
-			return getIdStr(obj.feed) === getIdStr(feedItem.feed)
-		})
-		if (findOne) {
-			userFeedItems.push({
-				user,
-				feed: feedItem.feed,
-				feedItem: feedItem._id,
-				pubDate: feedItem.pubDate,
-				unique: user._id + feedItem._id,
-				snapshot
-			})
-			validFeedItemIds.push(feedItem._id.toString())
-		}
-		return false
-	})
 
 	console.log(userFeedItems.length, 'length')
 	if (userFeedItems.length) {

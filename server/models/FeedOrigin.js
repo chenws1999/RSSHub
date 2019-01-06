@@ -16,6 +16,7 @@ const FeedOriginSchema = new mongoose.Schema({
 	tags: [String],
 	stop: { type: Number, default: 0 }, // 关闭源
 
+	pathToParamsRegExp: String,
 	params: [{
 		paramType: String, // 参数输入类型 (input, select)
 		name: String,

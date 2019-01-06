@@ -10,10 +10,11 @@ const FeedItem = require('../models/FeedItem')
 const UserCollect = require('../models/UserCollect')
 const UserFeedItem = require('../models/UserFeedItem')
 
+const getCtx = require('../lib/ctx')
 const settings = require('../config/settings.js')
 const Enums = require('../lib/enums')
 const redis = require('../lib/redis')
-const {feedService} = require('./service')
+const { feedService, feedOriginService } = require('./service')
 const { RedisKeys, FeedOriginPriorityTypes, FeedOriginParamTypes } = Enums
 
 const global = {
@@ -23,6 +24,11 @@ const global = {
 function generateFeedSignatureStr(origin, params = []) {
 	return origin._id + '?' + (params.map(obj => `${obj.key}=${obj.value}`).join('&'))
 }
+
+function generateFeedSignatureStrByObj(origin, params = {}) {
+	return origin._id + '?' + (Object.entries(params).map(([key, value]) => `${key}=${value}`).join('&'))
+}
+
 
 async function getFeedOriginTree() {
 	const obj = {}
@@ -80,11 +86,52 @@ exports.errHandler = function (err, req, res, next) {
 exports.getFeedOriginItem = async function (req, res) {
 	const { originId } = req.query
 
-	const origin = await FeedOrigin.findById(originId)
+	const origin = await FeedOrigin.findById(originId).select(feedOriginService.safeQuerySelectStr).lean()
 
 	res.json({
 		code: 0,
 		feedOrigin: origin
+	})
+}
+
+exports.getFeedOriginListV2 = async function (req, res) {
+	const limit = 10
+	const { position } = req.query
+	const user = req.user
+
+	const myFeeds = await UserFeed.find({ user }).lean()
+	const myFeedIdMap = myFeeds.reduce((obj, userFeed) => {
+		obj[userFeed.feedOrigin] = userFeed._id
+		return obj
+	}, {})
+
+	const query = {
+		priority: Enums.FeedOriginPriorityTypes.second
+	}
+	if (position) {
+		query.createAt = {
+			$lt: position
+		}
+	}
+
+	const list = await FeedOrigin.find(query).sort({createAt: -1}).limit(limit).lean()
+	let nextPosition = null
+	list.forEach((item, index) => {
+		if (index === list.length - 1) {
+			nextPosition = item.createAt
+		}
+		const isImmutable = !item.params || item.params.length === 0
+		const userFeedId = myFeedIdMap[item._id]
+		if (isImmutable && userFeedId) {
+			item.userFeedId = userFeedId
+		}
+		item.isImmutable = isImmutable
+		feedOriginService.safeSelectFeedOriginItem(item)
+	})
+	res.json({
+		code: 0,
+		position: nextPosition,
+		list,
 	})
 }
 
@@ -123,6 +170,49 @@ exports.getFeedOriginList = async function (req, res) {
 	})
 }
 
+exports.preCheckSubscribe = async function (req, res) {
+	const {feedOriginId, paramsObj} = req.query
+	//todo redis cache
+	console.log(feedOriginId, paramsObj)
+	const feedOrigin = await FeedOrigin.findById(feedOriginId).lean()
+	if (!feedOrigin) {
+		throw new Error('invalid origin id')
+	}
+
+	const signatureStr = generateFeedSignatureStrByObj(feedOrigin, paramsObj)
+	const findFeed = await Feed.findOne({signatureStr}).lean()
+	if (findFeed) {
+		return res.json({
+			code: 0,
+			info: {
+				title: findFeed.title
+			}
+		})
+	}
+	
+	const ctx = getCtx({
+		query: {},
+		params: paramsObj
+	})
+	const handler = require('../../routes/' + feedOrigin.routePath)
+	try {
+		await handler(ctx)
+	} catch (e) {
+		console.log(e)
+		return res.json({
+			coee: -1,
+			msg: '请求错误'
+		})
+	}
+	const {title} = ctx.state.data
+	return res.json({
+		code: 0,
+		info: {
+			title
+		}
+	})
+}
+
 const getPickerValue = (rangeArr, pickerValue) => {
 	if (!rangeArr || !rangeArr.length || !pickerValue || !pickerValue.length) {
 		return null
@@ -138,6 +228,8 @@ const getPickerValue = (rangeArr, pickerValue) => {
 		return findOne
 	}
 }
+
+
 
 exports.subscribeFeed = async function (req, res) {
 	const { originId, userFeedId, name, postParams = [] } = req.body
@@ -199,7 +291,7 @@ exports.subscribeFeed = async function (req, res) {
 
 	let oldRecord = null
 	if (userFeedId) {
-		oldRecord = await UserFeed.findOne({_id: userFeedId, user})
+		oldRecord = await UserFeed.findOne({ _id: userFeedId, user })
 		if (!oldRecord) {
 			throw new Error('invalid userfeedid')
 		}
@@ -219,6 +311,7 @@ exports.subscribeFeed = async function (req, res) {
 	}
 	Object.assign(record, {
 		originCode: feed.originCode,
+		feedOrigin: feed.origin,
 		userfeed: user._id + feed._id,
 		user,
 		feed,
@@ -235,6 +328,7 @@ exports.subscribeFeed = async function (req, res) {
 
 	res.json({
 		code: 0,
+		userFeed: record
 	})
 }
 
@@ -260,20 +354,24 @@ exports.unsubscribeFeed = async function (req, res) {
 
 
 exports.getPushFeedItemList = async function (req, res) {
-	const {lastPubDate} = req.query
+	const { position } = req.query
 	const query = {
 		user: req.user,
 	}
-	if (lastPubDate) {
+	if (position) {
 		query.pubDate = {
-			$gt: lastPubDate
+			$lt: position
 		}
 	}
-	const list = await UserFeedItem.find(query).sort({pubDate: -1}).limit(15).populate('feedItem')
+	const list = await UserFeedItem.find(query).sort({ pubDate: -1 }).limit(15).populate('feedItem')
 	// const list = await FeedItem.find({user: req.user}).limit(10)
+	// list[0].feedItem.imgs = ['https://ss0.baidu.com/7Po3dSag_xI4khGko9WTAnF6hhy/image/h%3D300/sign=f2db86688ccb39dbdec06156e01709a7/2f738bd4b31c87018e9450642a7f9e2f0708ff16.jpg',
+	// 'https://ss0.baidu.com/7Po3dSag_xI4khGko9WTAnF6hhy/image/h%3D300/sign=f2db86688ccb39dbdec06156e01709a7/2f738bd4b31c87018e9450642a7f9e2f0708ff16.jpg',
+	// 'https://ss0.baidu.com/7Po3dSag_xI4khGko9WTAnF6hhy/image/h%3D300/sign=f2db86688ccb39dbdec06156e01709a7/2f738bd4b31c87018e9450642a7f9e2f0708ff16.jpg']
 	res.json({
 		code: 0,
-		list
+		list,
+		position: list.length ? list[list.length - 1].pubDate : null
 	})
 }
 
@@ -316,7 +414,7 @@ exports.readPushRecord = async function (req, res) {
 		// const unreadRecords = await UserSnapshot.find({user, unread: 1})
 		// unreadRecords.forEach(record => record.unread = 0)
 		// console.log(unreadRecords)
-		await UserSnapshot.updateMany({user, unread: 1}, {unread: 0})
+		await UserSnapshot.updateMany({ user, unread: 1 }, { unread: 0 })
 	}
 
 	res.json({
@@ -325,26 +423,32 @@ exports.readPushRecord = async function (req, res) {
 }
 
 
-exports.getFeedContentList = async function (req, res) {
+exports.getFeedItemList = async function (req, res) {
 	const user = req.user
-	const { feed: feedId, after } = req.query
+	const { feedId, position } = req.query
 	const limit = 10
 
 	const userFeed = await UserFeed.findOne({ feed: feedId, user })
-	if (!userFeed) {
-		throw new Error('越权操作')
+		.populate({path: 'feed', select: feedService.safeQuerySelect})
+
+	let list = []
+	if (userFeed) {
+		const query = {}
+		if (position) {
+			query.pubDate = {
+				$lt: position
+			}
+		}
+		list = await UserFeedItem.find(query).sort({ pubDate: -1 })
+			.limit(limit)
+			.populate('feedItem')
 	}
 
-	const query = {}
-	if (after) {
-		query.createAt = {
-			$lt: after
-		}
-	}
-	const list = await FeedItem.find(query).sort({ createAt: -1 }).limit(limit)
 	res.json({
 		code: 0,
-		list
+		userFeed,
+		list,
+		position: list.length ? list[list.length - 1].pubDate : null
 	})
 }
 
@@ -460,22 +564,63 @@ exports.getMyFeedList = async function (req, res) {
 }
 
 exports.collectFeedItem = async function (req, res) {
-	const {feedItemId, userFeedItemId} = req.body
+	const { feedItemId, userFeedItemId } = req.body
 	const user = req.user
+	if (!feedItemId || !userFeedItemId) {
+		throw new Error('invalid body')
+	}
 	const newRecord = new UserCollect({
 		user,
 		feedItemId,
+		userFeedItem: userFeedItemId,
 		uniqueKey: user._id + feedItemId
 	})
 	await newRecord.save()
-	await FeedItem.update({_id: feedItemId}, {$inc: {
-		collectedCount: 1
-	}})
-	await User.update({_id: user._id}, {
+	await FeedItem.updateOne({ _id: feedItemId }, {
+		$inc: {
+			collectedCount: 1
+		}
+	})
+	await User.updateOne({ _id: user._id }, {
 		$inc: {
 			collectCount: 1
 		}
 	})
+	await UserFeedItem.updateOne({ _id: userFeedItemId }, {
+		$set: {
+			userCollectId: newRecord
+		}
+	})
+	return res.json({
+		code: 0,
+		item: newRecord
+	})
+}
+
+exports.deleteCollectItem = async function (req, res) {
+	const { userCollectId } = req.body
+	if (!userCollectId) {
+		throw new Error('invalid body')
+	}
+
+	const user = req.user
+	const item = await UserCollect.findById(userCollectId)
+	if (!item) {
+		throw new Error('not found item')
+	}
+	await item.remove()
+
+	await User.updateOne({ _id: user._id }, {
+		$inc: {
+			collectCount: -1
+		}
+	})
+	await FeedItem.updateOne({ _id: item.feedItemId }, {
+		$inc: {
+			collectedCount: -1
+		}
+	})
+	await UserFeedItem.updateOne({ _id: item.userFeedItem }, { userCollectId: null })
 	return res.json({
 		code: 0
 	})
@@ -539,7 +684,7 @@ exports.recieveFormId = async function (req, res) {
 
 //todo 设置whitelist 用户访问频率限制
 exports.fetchCrosFile = async function (req, res) {
-	const {src} = req.query
+	const { src } = req.query
 	if (!src) {
 		throw new Error('invalid source')
 	}

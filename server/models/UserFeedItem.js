@@ -12,7 +12,10 @@ const UserFeedItemSchema = new mongoose.Schema({
 	pubDate: {type: Date, index: -1, required: true},
 	unique: {type: String, unique: true, required: true}, // user + feeditem
 	snapshot: {type: ObjectId, ref: 'Snapshot', required: true},
-	feedOriginType: String
+	feedOriginType: String,
+	feedIcon: String, //头像地址
+	feedName: String,
+	userCollectId: {type: ObjectId, ref: 'UserCollect'},
 })
 
 UserFeedItemSchema.pre('save', function(next) {

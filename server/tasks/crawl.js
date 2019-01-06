@@ -90,7 +90,7 @@ async function main() {
 
 				const feed = await Feed.findById(task.feed)
 				const res = await handleCrawl(feed)
-				const {updateTime, updateCount, fetchItems, feedItems} = await handleFeedRes(feed, res, snapshot)
+				const {updateTime, updateCount, fetchItems, feedItems, feedTitle, feedLink} = await handleFeedRes(feed, res, snapshot)
 
 				const isUpdated = !!updateTime && (feed.fetchStatus !== FeedFetchStatus.new)  // 是否通知更新
 				if (updateTime) {
@@ -100,10 +100,13 @@ async function main() {
 					feed.lastItems = fetchItems
 				}
 
+				feed.title = feedTitle,
+				feed.link = feedLink
 				feed.fetchStatus = feed.fetchStatus === FeedFetchStatus.new ? FeedFetchStatus.init : FeedFetchStatus.normal
 				feed.lastFetch = Date.now()
 				feed.nextFetch = Date.now() + (feed.updateInterval * 1000)
-				await feed.save()
+				// await feed.save()
+				await Feed.updateOne({_id: feed._id}, feed)
 
 				if (isUpdated) {
 					taskUpdatedFeeds.push(feed)
@@ -115,7 +118,8 @@ async function main() {
 			}
 
 			task.nextFetch = feedNextUpdateTimeCache[task.feed]
-			await task.save()
+			// await task.save()
+			await UserFeed.updateOne({_id: task._id}, task)
 
 		} catch (e) {
 			console.log(`user feed ${task._id}/ ${task.user} /${task.fee} task error \n ------------- \n`)
@@ -177,7 +181,7 @@ async function main() {
 			}
 
 			if (taskUpdatedFeeds.length) {
-				pushToUser(user, snapshot, taskUpdatedFeeds, taskUpdatedFeedItems.reduce( (arr, arr2) => arr.concat(arr2)), [])
+				pushToUser(user, snapshot, taskUpdatedFeeds, taskUpdatedFeedItems)
 			}
 			console.log('push', taskUpdatedFeeds)
 			resolvedUser ++
@@ -398,7 +402,9 @@ async function handleFeedRes(feed, feedRes, snapshot) {
 		updateTime: time,
 		updateCount,
 		fetchItems: newItems,
-		feedItems: createdFeedItems
+		feedItems: createdFeedItems,
+		feedTitle,
+		feedLink
 	}
 }
 

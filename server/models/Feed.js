@@ -25,7 +25,10 @@ const FeedSchema = new mongoose.Schema({
 	}],
 
 	stop: {type: Number, default: 0}, // 关闭源
-	subscribedCount: {type: Number, default: 0},
+	subscribedCount: {type: Number, default: 0}, // 被订阅的数量
+	icon: String, // 头像
+	title: String,
+	link: String,
 	params: [{
 		name: String,
 		key: {type: String, required: true},

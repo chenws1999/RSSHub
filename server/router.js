@@ -19,19 +19,22 @@ const catchError = (func) => {
 const apiRouter = express.Router()
 apiRouter.get('/csrfToken', catchError(mainCtrl.getCsrfToken))
 apiRouter.post('/loginweapp', catchError(mainCtrl.login))
+apiRouter.get('/feed/precheck', catchError(mainCtrl.preCheckSubscribe))
 
 apiRouter.use(mainCtrl.isLogin)
 apiRouter.get('/user/myfeedList', catchError(mainCtrl.getMyFeedList))
 apiRouter.get('/user/info', catchError(mainCtrl.getMineInfo))
 apiRouter.get('/user/overview', catchError(mainCtrl.getOverview))
-
+apiRouter.post('/user/collect', catchError(mainCtrl.collectFeedItem))
+apiRouter.post('/user/deleteCollect', catchError(mainCtrl.deleteCollectItem))
 
 
 apiRouter.get('/feed/origin/item', catchError(mainCtrl.getFeedOriginItem))
-apiRouter.get('/feed/origin/list', catchError(mainCtrl.getFeedOriginList))
+// apiRouter.get('/feed/origin/list', catchError(mainCtrl.getFeedOriginList))
 apiRouter.post('/feed/subscribe', catchError(mainCtrl.subscribeFeed))
 apiRouter.post('/feed/unsubscribe', catchError(mainCtrl.unsubscribeFeed))
-apiRouter.get('/feed/contents', catchError(mainCtrl.getFeedContentList))
+apiRouter.get('/feed/items', catchError(mainCtrl.getFeedItemList))
+apiRouter.get('/feed/origin/list', catchError(mainCtrl.getFeedOriginListV2))
 
 apiRouter.get('/push/feedItems', catchError(mainCtrl.getPushFeedItemList))
 apiRouter.get('/push/List', catchError(mainCtrl.getPushRecordList))
@@ -40,6 +43,7 @@ apiRouter.post('/push/formId', catchError(mainCtrl.recieveFormId))
 
 
 const rootRouter = express.Router()
+
 rootRouter.get('/api/source/img', catchError(mainCtrl.fetchCrosFile))
 rootRouter.use('/api', apiRouter, mainCtrl.errHandler)
 

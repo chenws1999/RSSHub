@@ -8,6 +8,7 @@ const UserCollect = new mongoose.Schema({
 	updateAt: {type: Date, default: Date.now},
 	user: {type: ObjectId, unique: true},
 	feedItem: {type: ObjectId, ref: 'FeedItem'},
+	userFeedItem: {type: ObjectId, ref: 'UserFeedItem'},
 	uniqueKey: {type: String, unique: true}
 })
 

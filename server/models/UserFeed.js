@@ -9,6 +9,7 @@ const UserFeedSchema = new mongoose.Schema({
 	userfeed: {type: String, unique: true, required: true},
 	user: {type: ObjectId, ref: 'User', required: true},
 	feed: {type: ObjectId, ref: 'Feed', required: true},
+	feedOrigin: {type: ObjectId, ref: 'FeedOrigin'},
 	originCode: {type: String, required: true},
 	name: String,
 	nextFetch: {type: Date, required: true}, //下次更新时间
