@@ -6,6 +6,8 @@ import { AtTabs, AtTabsPane, AtTabBar } from 'taro-ui'
 import OverView from './pages/overview'
 import PushList from './pages/push'
 import Home from './pages/home'
+import Timeline from '../pushline/index'
+// import Timeline from './pages/timeline'
 import './index.less'
 
 interface IndexProps {
@@ -14,10 +16,12 @@ interface IndexProps {
 }
 
 interface IndexState {
-	tabIndex: TabIndexTypes
+	tabIndex: TabIndexTypes,
+	isInit: boolean
 }
 
-enum TabIndexTypes {overview, pushMessage, home}
+enum TabIndexTypes { overview, pushMessage, home }
+
 
 @connect(({ center }) => ({
 	...center
@@ -34,10 +38,11 @@ export default class Index extends Component<IndexProps, IndexState> {
 	config: Config = {
 		navigationBarTitleText: '首页'
 	}
-	constructor (props) {
+	constructor(props) {
 		super(props)
 		this.state = {
-			tabIndex: null
+			tabIndex: null,
+			isInit: false,
 		}
 	}
 	componentWillMount() { }
@@ -48,12 +53,10 @@ export default class Index extends Component<IndexProps, IndexState> {
 	}
 
 	componentWillUnmount() { }
-	componentWillReceiveProps (nextProps) {
+	componentWillReceiveProps(nextProps) {
 		console.log('next propsf', nextProps)
 		if (!this.props.user && nextProps.user) {
-			this.setState({
-				tabIndex: TabIndexTypes.overview
-			})
+			this.handleInit()
 		}
 	}
 	componentDidShow() { }
@@ -73,37 +76,70 @@ export default class Index extends Component<IndexProps, IndexState> {
 		})
 		console.log(res)
 	}
+	handleInit() {
+		this.setState({
+			tabIndex: TabIndexTypes.overview,
+			isInit: true
+		})
+		// Taro.setTabBarStyle({
+		// 	borderStyle: 'white',
+		// 	color: '#7d7e80',
+		// 	selectedColor: '#1989fa',
+		// })
+		const tabItems = [
+			{
+				pagePath: "pages/index/index",
+				iconPath: "static/message.png",
+				selectedIconPath: 'static/message2.png',
+				text: "更新"
+			},
+			// {
+			// 	pagePath: "pages/login/index",
+			// 	iconPath: 'static/user.png',
+			// 	selectedIconPath: 'static/user2.png',
+			// 	text: "管理"
+			// }
+		]
+		tabItems.forEach((obj, index) => {
+			Taro.setTabBarItem({
+				...obj,
+				index
+			})
+		})
+	}
 	handleTabClick(tabIndex) {
 		this.setState({
 			tabIndex
 		})
 	}
 	render() {
-		const {unreadPushCount} = this.props
-		const { tabIndex } = this.state
+		const { unreadPushCount } = this.props
+		const { tabIndex, isInit } = this.state
 		return (
-			<View className='index' >
-				{
-					tabIndex === TabIndexTypes.overview && <OverView/>
-				}
-				{
-					tabIndex === TabIndexTypes.pushMessage && <PushList/>
-				}
-				{
-					tabIndex === TabIndexTypes.home && <Home/>
-				}
-				<AtTabBar
-					fixed
-					tabList={[
-						{ title: '概览', iconType: 'credit-card'},
-						{ title: '通知', iconType: 'message', text: unreadPushCount || null},
-						{ title: '管理', iconType: 'home'}
-					]}
-					iconSize={20}
-					onClick={this.handleTabClick.bind(this)}
-					current={tabIndex}
-				/>
-			</View>
+			isInit ?
+				<View className='index' >
+					{
+						tabIndex === TabIndexTypes.overview && <Timeline />
+					}
+					{
+						tabIndex === TabIndexTypes.pushMessage && <PushList />
+					}
+					{
+						tabIndex === TabIndexTypes.home && <Home />
+					}
+					<AtTabBar
+						fixed
+						tabList={[
+							{ title: '概览', iconType: 'credit-card' },
+							{ title: '通知', iconType: 'message', text: unreadPushCount || null },
+							{ title: '管理', iconType: 'home' }
+						]}
+						iconSize={20}
+						onClick={this.handleTabClick.bind(this)}
+						current={tabIndex}
+					/>
+				</View> :
+				<View>loading....</View>
 		)
 	}
 }

@@ -102,8 +102,8 @@ export default class Index extends Component<{}, LoginState> {
         }).then(res => {
           if (res.code === 0) {
             console.log('login success')
-            Taro.redirectTo({
-              url: redirectUrl || '/pages/index/index',
+            Taro.navigateBack({
+              delta: 1
             })
             return
           }

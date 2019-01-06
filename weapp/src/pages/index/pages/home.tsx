@@ -8,7 +8,7 @@ import {
 } from 'taro-ui'
 
 import MyPicker from '../../../components/Picker/index'
-import { PushRecord, User, UserFeed, FeedOrigin, Feed, FeedOriginPriority, FeedOriginParamTypes, FeedOriginParam } from '../../propTypes'
+import { PushRecord, User, UserFeed, FeedOrigin, Feed, FeedOriginPriority, FeedOriginParamTypes, FeedOriginParam } from '../../../propTypes'
 import './styles/home.less'
 import Api from '../../../service'
 interface ReduxUserFeed extends UserFeed {

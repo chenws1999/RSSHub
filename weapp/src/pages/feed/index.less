@@ -1,0 +1,188 @@
+.itemCardListBox {
+    .itemCard {
+        background-color: white;
+        padding: 32px 20px;
+        // & + .itemCard {
+            margin-top: 28px;
+        // }
+        > .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            > .left {
+                display: flex;
+                align-items: center;
+                > Image {
+                    border-radius: 50%;
+                }
+                > Text {
+                    color: rgba(0,0,0,.85);
+                    font-size: 32px;
+                    padding-left: 20px;
+                }
+            }
+            > .right {
+                color: rgba(0,0,0,.25);
+                font-size: 28px;
+            }
+        }
+        > .content {
+            margin-top: 24px;
+            &.shortContent {
+                > .textBox {
+                    > .title {
+                        padding-bottom: 16px;
+                    }
+                    > .desc {
+                        font-size: 28px;
+                        min-height: 70px;
+                        // &.overflow {
+                        // }
+                        > .btn {
+                            font-size: 32px;
+                            color: #1989fa;
+                            padding: 8px 0;
+                        }
+                    }
+                }
+                > .imgBox {
+                   margin-top: 16px;
+                   &.single {
+                       .item {
+                            width: 100%;
+                            max-height: 30vh;
+                       }
+                   }
+                   &.multi {
+                       display: flex;
+                       align-items: center;
+                       > .itemBox {
+                            flex-basis: 0;
+                            flex-grow: 1;
+                            display: flex;
+                            & + .itemBox {
+                                margin-left: 10px;
+                            }
+                            > .placeholder {
+                                display: inline-block;
+                                width: 0;
+                                padding-top: 100%;
+                            }
+                            > .item {
+                                width: 100%;
+                                height: auto;
+                                // height: 100%;
+                            }
+                       }
+                   }
+                //    display: flex;
+                //    > .oneImg {
+    
+                //    }
+                }
+            }
+    
+            &.longContent {
+    
+            }
+           
+        }
+        > .footer {
+            margin-top: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+             .iconfont {
+                font-size: 42px !important;
+                color: #999;
+                // padding-left: 60px;
+                padding: 0 20px;
+                & + .iconfont {
+                    margin-left: 20px;
+                }
+            }
+            .icon-star-fill {
+                color: #fadb14;
+            }
+            > Button {
+                margin: 0;
+                border: none;
+                height: auto;
+                line-height: 1;
+                background-color: transparent;
+                &::after {
+                    border: none;
+                }
+            }
+        }
+    }
+    .bottomLoading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 0;
+        > Text {
+            padding-right: 16px;
+            font-size: 28px;
+            color: #999;
+        }
+    }
+
+    .nomore {
+        padding: 20px 0;
+        text-align: center;
+        font-size: 28px;
+        color: #999;
+    }
+}
+
+.feedHeaderBox {
+    margin-bottom: 30px;
+    > .bgColorCard {
+        height: 240px;
+        position: relative;
+        > .iconCard {
+            position: absolute;
+            bottom: -100px;
+            left: 5%;
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            overflow: hidden;
+            > Image {
+                width: 100%;
+                height: 100%;
+            }
+        }
+    }
+   
+    > .contentBox {
+        background-color: white;
+        > .baseInfo {
+            padding: 12px 20px 12px 250px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            > .left {
+                > .name {
+                    line-height: 1.6;
+                }
+                > .extra {
+                    color: #999;
+                    font-size: 28px;
+                }
+            }
+            > .right {
+
+            }
+        }
+        > .content {
+            padding: 12px 20px 30px;
+            font-size: 30px;
+            color: #0084FF;
+            > Text + Text {
+                padding-left: 40px;
+            }
+        }
+    }
+}

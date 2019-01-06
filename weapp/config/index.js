@@ -26,11 +26,19 @@ const config = {
   },
   copy: {
     patterns: [
+      {
+        from: '/src/components/vant-weapp/dist/wxs',
+        to: 'dist/components/vant-weapp/dist/wxs'
+      }
     ],
     options: {
     }
   },
   weapp: {
+    compile: {
+      exclude: [
+      ]
+    },
     module: {
       postcss: {
         autoprefixer: {

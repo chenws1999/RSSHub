@@ -1,5 +1,5 @@
 
-import APIS from '../service'
+import APIS from '../service/index'
 import {transformPushRecord, transformUserFeed} from './util'
 
 const initState = {

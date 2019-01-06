@@ -3,7 +3,7 @@ import { View, Text } from '@tarojs/components'
 import {connect} from '@tarojs/redux'
 import {AtCard, AtLoadMore} from 'taro-ui'
 
-import {PushRecord} from '../../propTypes'
+import {PushRecord} from '../../../propTypes'
 import './styles/push.less'
 
 interface ReduxPushRecord extends PushRecord {

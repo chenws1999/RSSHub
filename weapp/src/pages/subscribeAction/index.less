@@ -1,0 +1,116 @@
+.stepClass {
+    font-size: 32px !important;
+}
+
+.btnBase {
+    font-size: 32px;
+    line-height: 2;
+    padding: 0 12px;
+    display: inline-block;
+    border-radius: 5px;
+    overflow: hidden;
+    min-width: 140px;
+    
+}
+.box {
+    background-color: white;
+    height: 100vh;
+    > .content {
+        padding: 30px 24px;
+    }
+    .bottom {
+        padding-top: 30px;
+        padding-right: 20px;
+        text-align: right;
+        
+        > Button {
+            .btnBase();
+            & + Button {
+                margin-left: 30px;
+            }
+            &.backBtn {
+                background-color: white;
+                color: rgba(0, 132, 255, 0.7);
+                border: 1px solid rgba(0, 132, 255, 0.2);
+            }
+            &.nextBtn {
+                background-color: #1989fa;
+                color: white;
+                border: 1px solid #1989fa;
+            }
+        }
+    }
+    .mainArea {
+        min-height: 30vh;
+    }
+    .searchStepBox {
+        .linkInputBox {
+            text-align: center;
+            > Input {
+                line-height: 50px;
+                width: 70%;
+                text-align: center;
+                border-bottom: 1px solid rgba(0, 132, 255, 0.4);
+                margin: 0 auto;
+                padding: 0 20px;
+                &.notValid {
+                    border-color: #f44;
+                }
+            }
+        }
+        .preCheckArea {
+            padding-top: 20px;
+            > .btnArea {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                padding-top: 20px;
+                > Button {
+                    width: 300px;
+                    background-color: #1989fa;
+                    color: white;
+                    font-size: 32px;
+                    line-height: 2;
+                    text-align: center;
+                    &.disabled {
+                        background-color: #bbb;
+                    }
+                }
+            }
+            >.searchFeedInfoBox {
+                padding-top: 20px;
+                text-align: center;
+                > .preCheckLoadingText {
+                    text-align: center;
+                    font-size: 28px;
+                    color: #999;
+                }
+                > .searchFeedInfo {
+                    text-align: center;
+                    font-size: 32px;
+                }
+            }
+        }
+     
+        
+    }
+    .preSubmitStepBox {
+
+    }
+    .endStepBox {
+        >.mainArea {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            .iconfont {
+                font-size: 50px;
+                color: #1989fa;
+                padding-left: 16px;
+            }
+        }
+        text-align: right;
+        Button {
+            .btnBase();
+        }
+    }
+}

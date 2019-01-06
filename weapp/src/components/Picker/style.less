@@ -1,38 +1,63 @@
-.label {
-    text-align: center; 
-    font-size: 36px;  
-}
 
-.PickerViewOuterBox {
-    background-color: rgba(0, 0, 0, 0.5);
-    position: fixed;
-    width: 100%;
-    height: 100vh;
-    top: 0;
-    left: 0;
-    z-index: 100;
-    > .main {
-        > .header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 18px 30px;
-            > View {
-                flex-grow: 1;
-                flex-basis: 0;
-                font-size: 34px;
-                &.confirm {
-                    color: #1AAD19;
-                    text-align: right;
-                }
-            }
-            
+
+.pickerBox {
+    background-color: white;
+    padding: 20px 10px 20px 20px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    .baseArea {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        > .title {
+            color: #323233;
         }
+        > .extra {
+            font-size: 30px;
+            color: #969799;
+            max-width: 200px;
+            text-overflow: ellipsis;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+    }
+   
+    .label {
+        text-align: center; 
+        font-size: 36px;  
+    }
+    
+    .PickerViewOuterBox {
+        background-color: rgba(0, 0, 0, 0.5);
+        position: fixed;
         width: 100%;
-        background-color: white;
-        position: absolute;
-        bottom: 0;
-        left: 50%;
-        transform: translate(-50%, 0);
+        height: 100vh;
+        top: 0;
+        left: 0;
+        z-index: 100;
+        > .main {
+            > .header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 18px 30px;
+                > View {
+                    flex-grow: 1;
+                    flex-basis: 0;
+                    font-size: 34px;
+                    &.confirm {
+                        color: #1989fa;
+                        text-align: right;
+                    }
+                }
+                
+            }
+            width: 100%;
+            background-color: white;
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translate(-50%, 0);
+        }
     }
 }

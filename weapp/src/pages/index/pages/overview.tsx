@@ -3,7 +3,7 @@ import { View, Text, } from '@tarojs/components'
 import { connect } from '@tarojs/redux'
 import { AtCard, AtList, AtListItem, AtSwipeAction } from 'taro-ui'
 
-import { Feed, PushRecord, UserFeed } from '../../propTypes'
+import { Feed, PushRecord, UserFeed } from '../../../propTypes'
 import './styles/overview.less'
 
 interface ReduxPushRecord extends PushRecord {

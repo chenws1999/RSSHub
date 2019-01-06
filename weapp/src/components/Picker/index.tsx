@@ -1,5 +1,5 @@
 import Taro, { Component, Config } from '@tarojs/taro'
-import { View, PickerView, PickerViewColumn } from '@tarojs/components'
+import { Text, View, PickerView, PickerViewColumn } from '@tarojs/components'
 import {AtListItem} from 'taro-ui'
 
 import './style.less'
@@ -106,10 +106,10 @@ export default class MyPicker extends Component<CustomPickerProps, CustomPickerS
   render() {
     const { title, extra } = this.props
     const { columns, focusValue, showPicker, extraNote } = this.state
-    console.log(columns, focusValue, 'custom ')
+    console.log(columns, focusValue, 'custom ', title, extra)
     return (
-      <View className='index'>
-          <AtListItem title={title} extraText={extra || extraNote} onClick={this.showPicker.bind(this)}/>
+      <View className='pickerBox'>
+          <View className="baseArea" onClick={this.showPicker.bind(this)}><Text className="title">{title}</Text><Text className="extra">{extra || extraNote}</Text></View>
         {
           showPicker && <View className="PickerViewOuterBox" onClick={this.closePicker.bind(this)}>
             <View className="main" onClick={this.preventClick.bind(this)}>

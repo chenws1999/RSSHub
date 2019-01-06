@@ -1,9 +1,16 @@
 import center from './center'
 import home from './home'
 import push from './push'
+import pushline from './pushline'
+import feed from './feed'
+import addFeed from './subscribe'
+
 const models = [
     center,
     home,
-    push
+    push,
+    pushline,
+    feed,
+    addFeed
 ]
 export default models

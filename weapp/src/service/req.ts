@@ -1,10 +1,12 @@
 import Taro from '@tarojs/taro'
 import qs from 'qs'
 
-const baseUrl = 'http://192.168.1.4:4000/api'
-
+// const baseUrl = 'http://localhost:4000/api'
+// const baseUrl = 'http://192.168.1.3:4000/api'
+const baseUrl = 'http://192.168.0.100:4000/api'
 // const baseUrl = 'http://192.168.0.135:4000/api'
 
+// const baseUrl = 'https://weapp.balala.co/api'
 let cookie = ''
 
 const getCookie = () => {
@@ -25,7 +27,7 @@ const gotoLoginPage = (mode = 'login') => {
         mode,
         redirectUrl: '/' + pages[pages.length - 1].route,
     }
-    Taro.redirectTo({
+    Taro.navigateTo({
         url: '/pages/login/index?' + qs.stringify(params)
     })
 }

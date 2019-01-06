@@ -28,17 +28,60 @@ class App extends Component {
   config: Config = {
     pages: [
       'pages/index/index',
+      'pages/pushline/index',
+      'pages/subscribe/index',
+      'pages/subscribeAction/index',
+      'pages/home/index',
+      'pages/feed/index',
       'pages/login/index',
     ],
     window: {
       backgroundTextStyle: 'light',
       navigationBarBackgroundColor: '#fff',
       navigationBarTitleText: 'WeChat',
-      navigationBarTextStyle: 'black'
-    }
+      navigationBarTextStyle: 'black',
+      enablePullDownRefresh: true
+    },
+    tabBar: {
+      borderStyle: 'white',
+      color: '#7d7e80',
+      selectedColor: '#1989fa',
+      list: [
+        {
+          pagePath: "pages/index/index",
+          iconPath: "static/message.png",
+          selectedIconPath: 'static/message2.png',
+          text: "更新"
+        },
+        {
+          pagePath: "pages/pushline/index",
+          iconPath: "static/message.png",
+          selectedIconPath: 'static/message2.png',
+          text: "更新"
+        },
+        {
+          pagePath: 'pages/subscribe/index',
+          iconPath: 'static/plus.png',
+          selectedIconPath: 'static/plus2.png',
+          text: '添加'
+        },
+        // {
+        //   pagePath: "pages/home/index",
+        //   iconPath: "static/user.png",
+        //   selectedIconPath: 'static/user2.png',
+        //   text: "我"
+        // }
+        // {
+        //   pagePath: "pages/login/index",
+        //   iconPath: 'static/user.png',
+        //   selectedIconPath: 'static/user2.png',
+        //   text: "管理"
+        // }
+    },
   }
-  dvaapp
-  componentDidMount () {}
+  componentDidMount () {
+    console.log('app start')
+  }
 
   componentDidShow () {}
 
