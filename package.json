@@ -29,6 +29,7 @@
   "devDependencies": {
     "@types/mongoose": "^5.3.3",
     "body-parser": "^1.18.3",
+    "cheerio": "^1.0.0-rc.2",
     "compression": "^1.7.3",
     "connect-redis": "^3.4.0",
     "eslint": "5.9.0",
@@ -87,6 +88,7 @@
     "sharp": "^0.21.0",
     "tunnel": "^0.0.6",
     "twit": "2.2.11",
+    "vant-weapp": "^0.5.0-beta2",
     "winston": "3.1.0"
   },
   "engines": {

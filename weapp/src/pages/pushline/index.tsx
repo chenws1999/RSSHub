@@ -3,7 +3,9 @@ import { View, Text, RichText, Image, Button } from '@tarojs/components'
 import { connect } from '@tarojs/redux'
 import bindClass from 'classnames'
 
-import { FeedItem, FeedItemContentTypes, UserFeedItem, } from '../../propTypes'
+import MyIcon from '../../components/Icon/index'
+import utils from '../../utils/utils'
+import { FeedItem, FeedItemContentTypes, UserFeedItem, User} from '../../propTypes'
 import './index.less'
 
 interface reduxFeedItem extends UserFeedItem {
@@ -13,6 +15,7 @@ interface reduxFeedItem extends UserFeedItem {
 
 interface PushlineProps {
 	_csrf: '',
+	user: User,
 	dispatch: (action: {}) => Promise<any>,
 	feedItemList: reduxFeedItem[],
 	position: string,
@@ -25,6 +28,7 @@ interface PushlineState {
 }
 
 enum DescShowModes { showAll, hidden, clickShowAll }
+
 
 @connect(({ center, loading, pushline }) => ({
 	...center,
@@ -43,20 +47,23 @@ export default class Pushline extends Component<PushlineProps, PushlineState> {
 			'vant-loading': '../../components/vant-weapp/dist/loading/index'
 		}
 	}
+	pureUpdateFunc: Function
+	pureDidMountFunc: Function
+	pureWillReceivePropsFunc: Function
 	constructor(props) {
 		super(props)
 		this.state = {
 			showAllDescItems: []
 		}
+		utils.initIntercepter.call(this)
 	}
 	componentWillMount() { }
 
 	componentDidMount() {
-		console.log('inner show')
-		Taro.showShareMenu()
-		// Taro.startPullDownRefresh()
-		this.fetchFeedItemList()
-		// this.readAllPushRecord()
+
+		console.log('inner did mount', this.props._csrf)
+			Taro.showShareMenu()
+			this.fetchFeedItemList()
 	}
 	componentWillUnmount() {
 		this.props.dispatch({
@@ -101,13 +108,16 @@ export default class Pushline extends Component<PushlineProps, PushlineState> {
 	}
 	onPullDownRefresh() {
 		console.log('top loading ....')
+		if (this.props.itemListLoading) {
+			return
+		}
 		this.fetchFeedItemList(null, true)
 	}
 	onReachBottom() {
-		const { feedItemList, position } = this.props
+		const { feedItemList, position, itemListLoading } = this.props
 		const hasMore = !!position
 		console.log('iner bottom', position)
-		if (!hasMore) {
+		if (!hasMore || itemListLoading) {
 			return
 		}
 		this.fetchFeedItemList(position)
@@ -166,11 +176,11 @@ export default class Pushline extends Component<PushlineProps, PushlineState> {
 	render() {
 		const { feedItemList, itemListLoading, position } = this.props
 		const { showAllDescItems } = this.state
-		console.log(feedItemList, 'render')
+		console.log(feedItemList, 'render pushline')
 		return <View>
 			{
 				feedItemList.map((item, itemIndex) => {
-					const { contentType, desc, title, imgs } = item.feedItem
+					const { contentType, desc, title, imgs, link } = item.feedItem
 					const isShortContent = contentType === FeedItemContentTypes.short
 					const descShowMode = item.descLineCount <= 4 ? DescShowModes.showAll : (
 						showAllDescItems.includes(item._id) ? DescShowModes.clickShowAll : DescShowModes.hidden
@@ -182,7 +192,7 @@ export default class Pushline extends Component<PushlineProps, PushlineState> {
 						<View className="header">
 							<View className="left">
 								{/* <Text onClick={this.gotoFeedPage.bind(this)} > */}
-									<Image onClick={this.gotoFeedPage.bind(this, item.feed)} src="https://ss1.baidu.com/-4o3dSag_xI4khGko9WTAnF6hhy/image/h%3D300/sign=2e1591f5382ac65c78056073cbf3b21d/3b292df5e0fe9925a8a324c539a85edf8cb171f3.jpg" style={{ width: '30px', height: '30px' }} />
+								<Image onClick={this.gotoFeedPage.bind(this, item.feed)} src="https://ss1.baidu.com/-4o3dSag_xI4khGko9WTAnF6hhy/image/h%3D300/sign=2e1591f5382ac65c78056073cbf3b21d/3b292df5e0fe9925a8a324c539a85edf8cb171f3.jpg" style={{ width: '30px', height: '30px' }} />
 								{/* </Text> */}
 								<Text>{item.feedName || '测试'}</Text>
 							</View>
@@ -222,8 +232,17 @@ export default class Pushline extends Component<PushlineProps, PushlineState> {
 
 						</View>
 						<View className="footer">
-							<Text className={bindClass("iconfont", item.userCollectId ? 'icon-star-fill' : 'icon-star')} onClick={this.handleCollectAction.bind(this, itemIndex)}></Text>
-							<Button openType="share" data-itemIndex={itemIndex}><Text className="iconfont icon-share"></Text></Button>
+							<View>
+								<MyIcon type="link" onClick={this.handleCopyItemLink.bind(this, link)} />
+							</View>
+							<View>
+								<MyIcon type={item.userCollectId ? 'star-fill' : 'star'} onClick={this.handleCollectAction.bind(this, itemIndex)} />
+							</View>
+							<View>
+								<Button openType="share" data-itemIndex={itemIndex}><MyIcon type="share" /></Button>
+							</View>
+							{/* <MyIcon type={item.userCollectId ? 'star-fill' : 'star'} onClick={this.handleCollectAction.bind(this, itemIndex)}/>
+							<Button openType="share" data-itemIndex={itemIndex}><MyIcon type="share"/></Button> */}
 						</View>
 					</View>
 				})

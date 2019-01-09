@@ -4,6 +4,7 @@ import push from './push'
 import pushline from './pushline'
 import feed from './feed'
 import addFeed from './subscribe'
+import message from './message'
 
 const models = [
     center,
@@ -11,6 +12,7 @@ const models = [
     push,
     pushline,
     feed,
-    addFeed
+    addFeed,
+    message
 ]
 export default models

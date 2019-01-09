@@ -3,7 +3,14 @@ export interface User {
     createAt: string,
     updateAt: string,
     openId: string,
-    name?: string
+    name?: string,
+    gender: number,
+	headImg: string,
+	city: string,
+	province: string,
+    country: string,
+    collectCount: number,
+	subscribeCount: number
 }
 
 export interface Snapshot {
@@ -14,6 +21,26 @@ export interface Snapshot {
     endTime: string,
     userCount: number,
     taskCount: number,
+}
+
+
+export interface UserSnapshot {
+    _id: string,
+    createAt: string,
+    updateAt: string,
+    pushTime: string,
+    user: User,
+    snapshot: Snapshot,
+    unread: number,
+    feeds: {
+        feed: string,
+        name: string,
+        icon: string
+        lastUpdate: string,
+        lastFetch: string,
+        lastSnapshot: string | Snapshot,
+        lastUpdateCount: number,
+    }[]
 }
 
 export interface FeedOriginParam { 

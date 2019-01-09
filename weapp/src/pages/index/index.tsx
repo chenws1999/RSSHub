@@ -139,7 +139,7 @@ export default class Index extends Component<IndexProps, IndexState> {
 						current={tabIndex}
 					/>
 				</View> :
-				<View>loading....</View>
+				<View></View>
 		)
 	}
 }

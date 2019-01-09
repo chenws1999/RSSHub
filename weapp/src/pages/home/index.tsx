@@ -1,90 +1,139 @@
 import Taro, { Component, Config } from '@tarojs/taro'
-import { View, Text, RichText, Image, Button } from '@tarojs/components'
+import { View, Text, Image, Button } from '@tarojs/components'
 import { connect } from '@tarojs/redux'
 import bindClass from 'classnames'
 
-import { FeedItem, FeedItemContentTypes, UserFeedItem, } from '../../propTypes'
+import utils from '../../utils/utils'
+import { User } from '../../propTypes'
 import './index.less'
 
-interface reduxFeedItem extends UserFeedItem {
-	feedItem: FeedItem,
-	descLineCount: number
+interface reduxUser extends User {
+	joinDays: number,
 }
 
-interface PushlineProps {
+interface HomeProps {
 	_csrf: '',
 	dispatch: (action: {}) => Promise<any>,
-	feedItemList: reduxFeedItem[],
-	position: string,
-	itemListLoading: boolean,
-	collectActionLoading: boolean,
+	infoLoading: boolean,
+	homeUserInfo: reduxUser,
 }
 
-interface PushlineState {
-	showAllDescItems: string[]
+interface HomeState {
+	name: string,
+	headImg: string,
+	joinDays: number,
+	collectCount: number,
+	subscribeCount: number
 }
 
-enum DescShowModes { showAll, hidden, clickShowAll }
+const refreshTime = 1500
+const refreshInterval = 17 // ms
 
-@connect(({ center, loading, pushline }) => ({
+let count = 0
+
+@connect(({ center, loading, home }) => ({
 	...center,
-	...pushline,
-	itemListLoading: loading.effects['pushline/fetchUserFeedItemList'],
-	collectActionLoading: loading.effects['pushline/deleteCollectUserFeedItem' || 'pushline/collectUserFeedItem']
+	...home,
+	infoLoading: loading.effects['home/fetchHomeUserInfo'],
 }), null)
-export default class Pushline extends Component<PushlineProps, PushlineState> {
+export default class Home extends Component<HomeProps, HomeState> {
 
 	static options = {
-		addGlobalClass: true
 	}
 	config: Config = {
-		navigationBarTitleText: '首页',
+		navigationBarTitleText: '主页',
+		enablePullDownRefresh: false,
 		usingComponents: {
 			'vant-loading': '../../components/vant-weapp/dist/loading/index'
 		}
 	}
-	isScollInTopArea: boolean = false
+	originCountObj: {
+		joinDays: number,
+		collectCount: number,
+		subscribeCount: number,
+	}
+	increaseCountObj: {
+		joinDays: number,
+		collectCount: number,
+		subscribeCount: number,
+	}
+	timerId: any
 	constructor(props) {
 		super(props)
 		this.state = {
-			showAllDescItems: []
+			name: '',
+			headImg: '',
+			joinDays: null,
+			collectCount: null,
+			subscribeCount: null,
 		}
 	}
 	componentWillMount() { }
 
 	componentDidMount() {
 		console.log('inner show')
-		Taro.showShareMenu()
 		// Taro.startPullDownRefresh()
-		this.fetchFeedItemList()
+		this.fetchHomeUserInfo()
 		// this.readAllPushRecord()
 	}
 	componentWillUnmount() {
 
 	}
-	showListItemDescAll(key, key2) {
-		console.log(key, key2)
-		this.setState({
-			showAllDescItems: [...this.state.showAllDescItems, key]
-		})
-	}
-	hideListItemDescAll(key) {
-		this.setState({
-			showAllDescItems: this.state.showAllDescItems.filter(i => i !== key)
-		})
-	}
-	fetchFeedItemList(position = null, refresh = false) {
+
+	fetchHomeUserInfo(position = null, refresh = false) {
 		const { dispatch } = this.props
 		console.log('inner ')
 		const res = dispatch({
-			type: 'pushline/fetchUserFeedItemList',
+			type: 'home/fetchHomeUserInfo',
 			payload: {
-				params: {
-					position
-				},
-				refresh
+			}
+		}).then((userInfo: reduxUser) => {
+			if (userInfo) {
+				console.log(userInfo, 'userinfo')
+				const { joinDays, collectCount, subscribeCount, headImg, name } = userInfo
+				this.setState({
+					headImg,
+					name
+				})
+				this.originCountObj = {
+					joinDays,
+					collectCount,
+					subscribeCount,
+				}
+				this.increaseCountObj = {}
+
+				this.startRefreshCount(Object.keys(this.originCountObj))
 			}
 		})
+	}
+	startRefreshCount(keys) {
+		console.log('keys', keys, count ++)
+		let validCount = 0
+		keys.forEach(key => {
+			const originValue = this.originCountObj[key]
+			let increaseCount = this.increaseCountObj[key]
+			if (!increaseCount) {
+				increaseCount = Math.ceil(originValue / (Math.floor(refreshTime / refreshInterval)))
+				this.increaseCountObj = increaseCount
+			}
+
+			const nowValue = this.state[key] || 0
+			if (nowValue >= originValue) {
+				this.setState({
+					[key]: originValue
+				})
+				validCount ++
+			} else {
+				this.setState({
+					[key]: nowValue + increaseCount
+				})
+			}
+		})
+
+		if (validCount !== keys.length) {
+			setTimeout(this.startRefreshCount.bind(this, keys), refreshInterval)
+		}
+
 	}
 	onShareAppMessage(obj) {
 		const { from, target } = obj
@@ -94,135 +143,42 @@ export default class Pushline extends Component<PushlineProps, PushlineState> {
 
 		}
 	}
-	onPullDownRefresh() {
-		console.log('top loading ....')
-		this.fetchFeedItemList(null, true)
-	}
-	onReachBottom() {
-		const { feedItemList, position } = this.props
-		const hasMore = !!position
-		if (!hasMore) {
-			return
-		}
-		this.fetchFeedItemList(position)
-		console.log('loading .....')
-	}
-	handlePreviewItemImgs(itemIndex: number) {
-		const { feedItemList } = this.props
-		const item = feedItemList[itemIndex]
-		const { imgs = [] } = item.feedItem
-		Taro.previewImage({
-			current: imgs[0],
-			urls: imgs
-		})
-	}
-	handleCollectAction (itemIndex: number) {
-		const { feedItemList, dispatch, collectActionLoading } = this.props
-		const item = feedItemList[itemIndex]
-		if (collectActionLoading) {
-			// todo toast
-			return
-		}
-		const isCollected = !!item.userCollectId
-		if (isCollected) {
-			dispatch({
-				type: 'pushline/deleteCollectUserFeedItem',
-				payload: {
-					data: {
-						userCollectId: item.userCollectId
-					},
-					feedItemId: item._id
-				}
-			})
-		} else {
-			dispatch({
-				type: 'pushline/collectUserFeedItem',
-				payload: {
-					data: {
-						userFeedItemId: item._id,
-						feedItemId: item.feedItem._id 
-					},
-					feedItemId: item._id
-				}
-			}).then(isUpdate => {
-				if (isUpdate) {
-					this.setState({})
-				}
-			})
-		}
-		
-	}
 	render() {
-		const { feedItemList, itemListLoading, position } = this.props
-		const { showAllDescItems } = this.state
-		console.log(feedItemList, 'render')
-		return <View>
-			{
-				feedItemList.map((item, itemIndex) => {
-					const { contentType, desc, title, imgs } = item.feedItem
-					const isShortContent = contentType === FeedItemContentTypes.short
-					const descShowMode = item.descLineCount <= 4 ? DescShowModes.showAll : (
-						showAllDescItems.includes(item._id) ? DescShowModes.clickShowAll : DescShowModes.hidden
-					)
-					const descStr = descShowMode === DescShowModes.hidden ? desc.split('\n').slice(0, 4).join('\n') : desc
-					const imgBoxClassName = bindClass('imgBox', imgs.length === 1 ? 'single' : 'multi')
-					
-					return <View className="itemCard">
-						<View className="header">
-							<View className="left">
-								<Image src="https://ss1.baidu.com/-4o3dSag_xI4khGko9WTAnF6hhy/image/h%3D300/sign=2e1591f5382ac65c78056073cbf3b21d/3b292df5e0fe9925a8a324c539a85edf8cb171f3.jpg" style={{ width: '30px', height: '30px' }} />
-								<Text>{item.feedName || '测试'}</Text>
-							</View>
-							<View className="right">{item.pubDate}</View>
-						</View>
-						<View className={bindClass("content", isShortContent ? 'shortContent' : 'longContent')}>
-							<View className="textBox">
-								<View className="title">{title}</View>
-								<View className="desc">
-									{
-										<Text>{descStr}</Text>
-									}
-									{
-										descShowMode === DescShowModes.hidden && <View className="btn" onClick={this.showListItemDescAll.bind(this, item._id)}>查看全部</View>
-									}
-									{
-										descShowMode === DescShowModes.clickShowAll && <View className="btn" onClick={this.hideListItemDescAll.bind(this, item._id)}>收起全部</View>
-									}
-								</View>
-							</View>
-							{
-								imgs && imgs.length && <View
-									className={imgBoxClassName}
-								>
-									{
-										imgs.map(src => <View key={src} className="itemBox">
-											<View className="placeholder"></View>
-											<Image  mode="aspectFill"
-												className="item"
-												onClick={this.handlePreviewItemImgs.bind(this, itemIndex)}
-												src={src} lazyLoad={true}
-											/>
-										</View>)
-									}
-								</View>
-							}
-
-						</View>
-						<View className="footer">
-							<Text className={bindClass("iconfont", item.userCollectId ? 'icon-star-fill' : 'icon-star')} onClick={this.handleCollectAction.bind(this, itemIndex)}></Text>
-							<Button openType="share" data-itemIndex={itemIndex}><Text className="iconfont icon-share"></Text></Button>
+		const { name, headImg, subscribeCount, collectCount, joinDays } = this.state
+		return <View className="homeBox">
+			<View className="header">
+				<View className="left">
+					<Image src={utils.getUrl(headImg)} />
+				</View>
+				<View className="right">
+					<View className="item">
+						<Text className="label">已加入</Text>
+						<View className="value">
+							<Text className="count">{joinDays === null ? '-' : joinDays}</Text>
+							<Text className="unit">天</Text>
 						</View>
 					</View>
-				})
-			}
-			{
-				itemListLoading && <View className="bottomLoading">
-					<Text>加载中...</Text><vant-loading size="16px" />
+					<View className="item">
+						<Text className="label">已订阅</Text>
+						<View className="value">
+							<Text className="count">{subscribeCount === null ? '-' : subscribeCount}</Text>
+							<Text className="unit">个</Text>
+						</View>
+					</View>
+					<View className="item">
+						<Text className="label">已收藏</Text>
+						<View className="value">
+							<Text className="count">{collectCount === null ? '-' : collectCount}</Text>
+							<Text className="unit">条</Text>
+						</View>
+					</View>
 				</View>
-			}
-			{
-				!itemListLoading && !position && <View className="nomore">没有更多了....</View>
-			}
+			</View>
+			<View className="menu">
+				<View className="menuItem">我的消息</View>
+				<View className="menuItem">我的收藏</View>
+				<View className="menuItem">帮助与反馈</View>
+			</View>
 		</View>
 	}
 }

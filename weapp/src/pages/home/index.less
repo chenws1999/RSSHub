@@ -1,0 +1,65 @@
+.homeBox {
+    @cardWidth: 90%;
+    > .header {
+        width: @cardWidth;
+        box-sizing: border-box;
+        margin: 80px auto 0;
+        background-color: white;
+        display: flex;
+        align-items: center;
+        padding: 40px 50px;
+        > .right {
+            flex-grow: 1;
+            > .item {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 16px 0;
+                >.label {
+                    color: #999;
+                    font-size: 32px;
+                }
+                > .value {
+                    font-size: 32px;
+                    font-weight: bold;
+                    color: #1989fa;
+                    flex-grow: 1;
+                    text-align: right;
+                    > .unit {
+                        padding-left: 10px;
+                    }
+                }
+            }
+        }
+        > .left {
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            margin-right: 60px;
+            > Image {
+                @width: 180px;
+                width: @width;
+                height: @width;
+                border-radius:@width / 2;
+                overflow: hidden;
+            }
+        }
+    }
+    > .menu {
+        width: @cardWidth;
+        box-sizing: border-box;
+
+        background-color: white;
+        margin: 40px auto 0;
+        >.menuItem {
+            background-color: white;
+            text-align: center;
+            padding: 20px 0;
+            color: #999;
+            & + .menuItem {
+                border-top: 1px solid rgba(0, 0, 0, 0.1);
+            }
+        }
+    }
+}

@@ -3,6 +3,8 @@ import { View, Text, RichText, Image, Button } from '@tarojs/components'
 import { connect } from '@tarojs/redux'
 import bindClass from 'classnames'
 
+import utils from '../../utils/utils'
+import MyIcon from '../../components/Icon/index'
 import { FeedItem, FeedItemContentTypes, UserFeedItem, Feed} from '../../propTypes'
 import './index.less'
 
@@ -44,7 +46,7 @@ export default class FeedItemListPage extends Component<FeedPageProps, FeedPageS
 		addGlobalClass: true
 	}
 	config: Config = {
-		navigationBarTitleText: '首页',
+		navigationBarTitleText: '已订阅',
 		usingComponents: {
 			'vant-loading': '../../components/vant-weapp/dist/loading/index'
 		}
@@ -59,6 +61,8 @@ export default class FeedItemListPage extends Component<FeedPageProps, FeedPageS
 		this.state = {
 			showAllDescItems: []
 		}
+		utils.initIntercepter.call(this)
+
 	}
 	componentWillMount() { }
 
@@ -112,9 +116,6 @@ export default class FeedItemListPage extends Component<FeedPageProps, FeedPageS
 		return {
 
 		}
-	}
-	handleItemShareBtnClick() {
-		console.log('inner share')
 	}
 	onPullDownRefresh() {
 		console.log('top loading ....')
@@ -174,6 +175,16 @@ export default class FeedItemListPage extends Component<FeedPageProps, FeedPageS
 		}
 
 	}
+	async handleCopyItemLink (linkValue) {
+		await Taro.setClipboardData({
+			data: linkValue
+		})
+		Taro.showToast({
+			title: '链接复制成功',
+			icon: 'success',
+			duration: 1000
+		})
+	}
 	render() {
 		const { feedItemList, itemListLoading, position, feedInfo } = this.props
 		const { showAllDescItems } = this.state
@@ -207,7 +218,7 @@ export default class FeedItemListPage extends Component<FeedPageProps, FeedPageS
 		const listNode = <View className="itemCardListBox">
 			{
 				feedItemList.map((item, itemIndex) => {
-					const { contentType, desc, title, imgs } = item.feedItem
+					const { contentType, desc, title, imgs, link} = item.feedItem
 					const isShortContent = contentType === FeedItemContentTypes.short
 					const descShowMode = item.descLineCount <= 4 ? DescShowModes.showAll : (
 						showAllDescItems.includes(item._id) ? DescShowModes.clickShowAll : DescShowModes.hidden
@@ -257,8 +268,18 @@ export default class FeedItemListPage extends Component<FeedPageProps, FeedPageS
 
 						</View>
 						<View className="footer">
-							<Text className={bindClass("iconfont", item.userCollectId ? 'icon-star-fill' : 'icon-star')} onClick={this.handleCollectAction.bind(this, itemIndex)}></Text>
-							<Button openType="share" data-itemIndex={itemIndex} onClick={this.handleItemShareBtnClick.bind(this)}><Text className="iconfont icon-share"></Text></Button>
+							<View>
+								<MyIcon type="link" onClick={this.handleCopyItemLink.bind(this, link)}/>
+							</View>
+							<View>
+								<MyIcon type={item.userCollectId ? 'star-fill' : 'star'} onClick={this.handleCollectAction.bind(this, itemIndex)}/>
+							</View>
+							<View>
+								<Button openType="share" data-itemIndex={itemIndex}><MyIcon type="share"/></Button>
+							</View>
+							{/* <MyIcon type="link" onClick={this.handleCopyItemLink.bind(this, link)}/>
+							<MyIcon type={item.userCollectId ? 'star-fill' : 'star'} onClick={this.handleCollectAction.bind(this, itemIndex)}/>
+							<Button openType="share" data-itemIndex={itemIndex}><MyIcon type="share"/></Button> */}
 						</View>
 					</View>
 				})

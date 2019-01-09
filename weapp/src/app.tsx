@@ -33,6 +33,7 @@ class App extends Component {
       'pages/subscribeAction/index',
       'pages/home/index',
       'pages/feed/index',
+      'pages/message/index',
       'pages/login/index',
     ],
     window: {
@@ -64,6 +65,18 @@ class App extends Component {
           iconPath: 'static/plus.png',
           selectedIconPath: 'static/plus2.png',
           text: '添加'
+        },
+        {
+          pagePath: 'pages/message/index',
+          iconPath: 'static/message.png',
+          selectedIconPath: 'static/message2.png',
+          text: '消息'
+        },
+        {
+          pagePath: 'pages/home/index',
+          iconPath: 'static/message.png',
+          selectedIconPath: 'static/message2.png',
+          text: '消息'
         },
         // {
         //   pagePath: "pages/home/index",

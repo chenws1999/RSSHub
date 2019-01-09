@@ -23,9 +23,9 @@ interface SubscribeProps {
 	unSubscribeLoading: boolean
 }
 
-enum FeedSubscribeActionSteps {searchFeed, setExtra, end}
+enum FeedSubscribeActionSteps { searchFeed, setExtra, end }
 
-const subscribeActionStepsArr = [{text: '选择'}, {text: '提交'}]
+const subscribeActionStepsArr = [{ text: '选择' }, { text: '提交' }]
 
 interface SubscribeState {
 }
@@ -33,22 +33,22 @@ interface SubscribeState {
 
 const test = [
 	{
-	  text: '步骤一',
-	  desc: '描述信息'
+		text: '步骤一',
+		desc: '描述信息'
 	},
 	{
-	  text: '步骤二',
-	  desc: '描述信息'
+		text: '步骤二',
+		desc: '描述信息'
 	},
 	{
-	  text: '步骤三',
-	  desc: '描述信息'
+		text: '步骤三',
+		desc: '描述信息'
 	},
 	{
-	  text: '步骤四',
-	  desc: '描述信息'
+		text: '步骤四',
+		desc: '描述信息'
 	}
-  ]
+]
 
 @connect(({ center, loading, subscribe }) => ({
 	...center,
@@ -115,13 +115,16 @@ export default class SubscribeListPage extends Component<SubscribeProps, Subscri
 		console.log('inner share')
 	}
 	onPullDownRefresh() {
+		if (this.props.originListLoading) {
+			return
+		}
 		console.log('top loading ....')
 		this.fetchFeedOriginList(null, true)
 	}
 	onReachBottom() {
-		const { position } = this.props
+		const { position, originListLoading } = this.props
 		const hasMore = !!position
-		if (!hasMore) {
+		if (!hasMore || originListLoading) {
 			return
 		}
 		this.fetchFeedOriginList(position)
@@ -175,7 +178,7 @@ export default class SubscribeListPage extends Component<SubscribeProps, Subscri
 			}
 		})
 	}
-	handleHideModal () {
+	handleHideModal() {
 		this.setState({
 			showModal: false
 		})
@@ -203,23 +206,22 @@ export default class SubscribeListPage extends Component<SubscribeProps, Subscri
 								<Button className={isSubscribed ? 'checked' : 'notChecked'}
 									onClick={this.handleSubScribeAction.bind(this, itemIndex, isSubscribed)}
 								>
-									<MyIcon type={isSubscribed ? 'check': 'plus'}/>
+									<MyIcon type={isSubscribed ? 'check' : 'plus'} />
 									<Text >{isSubscribed ? '已订阅' : '订阅'}</Text>
 								</Button>
 							</View>
 						</View>
 					})
 				}
-				{
-					originListLoading && <View className="bottomLoading">
-						<Text>加载中...</Text><vant-loading size="16px" />
-					</View>
-				}
-				{
-					!originListLoading && !position && <View className="nomore">没有更多了....</View>
-				}
-
 			</View>
+			{
+				originListLoading && <View className="bottomLoading">
+					<Text>加载中...</Text><vant-loading size="16px" />
+				</View>
+			}
+			{
+				!originListLoading && !position && <View className="nomore">没有更多了....</View>
+			}
 		</View>
 	}
 }

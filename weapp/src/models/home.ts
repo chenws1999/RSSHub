@@ -1,71 +1,50 @@
-
 import APIS from '../service/index'
-import {transformPushRecord, transformUserFeed} from './util'
+import {User} from '../propTypes'
+
+// import dayjs from 'dayjs'
+import {formatTime} from './util/index'
 
 const initState = {
-    myFeedList: [],
-    originList: [],
+    homeUserInfo: null,
+    lastMessageTime: null 
+}
+
+const transformUser = (user: User) => {
+    const {collectCount, subscribeCount} = user
+    const joinDays = Math.floor(( Date.now() -Date.parse(user.createAt) ) / (3600 * 24 * 1000))
+    return {
+        ...user,
+        joinDays: joinDays,
+    }
 }
 
 export default {
     namespace: 'home',
     state: initState,
     effects: {
-        * fetchMyFeedList ({payload: {params}}, {put, call}) {
-            const res = yield call(APIS.getMyFeedList.bind(null, params))
-            const {list} = res
-            yield put({
-                type: 'saveData',
-                payload: {
-                    myFeedList: list.map(transformUserFeed)
-                }
-            })
-        },
-        * fetchFeedOriginList ({payload: {params}}, {put, call}) {
-            const res = yield call(APIS.getFeedOriginList.bind(null, params))
-            const {list} = res
-            yield put({
-                type: 'appendList',
-                payload: {
-                    key: 'originList',
-                    list
-                }
-            })
-        },
-        * fetchFeedOriginItem ({payload: {params}}, {put, call}) {
-            const res = yield call(APIS.getFeedOriginItem.bind(null, params))
-            return res
-        },
-        * subscribeOrigin ({payload: {data}}, {put, call}) {
-            const res = yield call(APIS.subscribeFeed.bind(null, data))
-            return res
-        },
-        * unsubscribeOrigin ({payload: {data}}, {put, call}) {
-            const res = yield call(APIS.unsubscribeFeed.bind(null, data))
-            return res
+        * fetchHomeUserInfo ({payload: {params}}, {put, call}) {
+            const res = yield call(APIS.getHomeInfo.bind(null))
+            if (res && res.code === 0) {
+                return transformUser(res.user)
+                // const {user, lastMessageTime} = res
+                // yield put({
+                //     type: 'saveData',
+                //     payload: {
+                //         homeUserInfo: transformUser(user),
+                //         lastMessageTime: lastMessageTime && formatTime(lastMessageTime)
+                //     }
+                // })
+                // return true
+            }
+           
         }
     },
     reducers: {
         saveData (state, {payload}) {
+            console.log('save home', payload)
             return {
                 ...state,
                 ...payload
-            }
-        },
-        unshiftList (state, {payload}) {
-            const {key, list} = payload
-            const oldList = state[key]
-            return {
-                ...state,
-                [key]: [...list, ...oldList]
-            }
-        },
-        appendList (state,{payload}) {
-            const {key, list} = payload
-            const oldList = state[key]
-            return {
-                ...state,
-                [key]: [...oldList, ...list]
             }
         },
     }

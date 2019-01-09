@@ -58,6 +58,7 @@ export default class SubscribeAction extends Component<SubscribeActionProps, Sub
     config: Config = {
         navigationBarTitleText: '首页',
         disableScroll: true,
+        enablePullDownRefresh: false,
         usingComponents: {
             'vant-loading': '../../components/vant-weapp/dist/loading/index',
             'vant-steps': '../../components/vant-weapp/dist/steps/index',

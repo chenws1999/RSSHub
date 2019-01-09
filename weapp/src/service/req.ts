@@ -1,12 +1,19 @@
 import Taro from '@tarojs/taro'
 import qs from 'qs'
 
-// const baseUrl = 'http://localhost:4000/api'
-// const baseUrl = 'http://192.168.1.3:4000/api'
-const baseUrl = 'http://192.168.0.100:4000/api'
-// const baseUrl = 'http://192.168.0.135:4000/api'
 
-// const baseUrl = 'https://weapp.balala.co/api'
+let baseUrl = ''
+
+if (process.env.NODE_ENV === 'development') {
+   //  baseUrl = 'http://localhost:4000/api'
+//  baseUrl = 'http://192.168.1.3:4000/api'
+     baseUrl = 'http://192.168.1.4:4000/api'
+//  baseUrl = 'http://192.168.0.135:4000/api'
+
+} else {
+    baseUrl = 'https://weapp.balala.co/api'
+}
+
 let cookie = ''
 
 const getCookie = () => {

@@ -12,6 +12,10 @@ export async function getMineInfo (params) {
     return request('/user/info?' + stringify(params) )
 }
 
+export async function getHomeInfo () {
+    return request('/user/homeInfo')
+}
+
 export async function getMyFeedList (params) {
     return request('/user/myFeedList?' + stringify(params) )
 }

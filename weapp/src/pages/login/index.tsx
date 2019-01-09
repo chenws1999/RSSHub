@@ -1,18 +1,18 @@
 import Taro, { Component, Config } from '@tarojs/taro'
-import { View, Text } from '@tarojs/components'
+import { View, Text, Button } from '@tarojs/components'
 import { connect } from '@tarojs/redux'
 
 import { dispatch } from '../../dva'
-// import './index.less'
+import './login.less'
 
-enum LoginModes { login, addProfile }
-enum addProfileSteps { preCheck, reqUserInfoPower, reqMobilePower }
+enum LoginSteps { preCheck, reqUserInfoPower, reqMobilePower }
+
+interface LoginProps {
+  loginPostLoading: boolean
+}
 
 interface LoginState {
-  mode: LoginModes,
-  _csrf: string
-  redirectUrl?: string,
-  addProfileStep: addProfileSteps
+  loginStep: LoginSteps
 }
 
 interface EncrypteDataObj {
@@ -20,12 +20,13 @@ interface EncrypteDataObj {
   iv: string
 }
 
-@connect(({ center }) => {
+@connect(({ center, loading }) => {
   return {
-    ...center
+    ...center,
+    loginPostLoading: loading.effects['center/login']
   }
 })
-export default class Index extends Component<{}, LoginState> {
+export default class Index extends Component<LoginProps, LoginState> {
 
   /**
    * 指定config的类型声明为: Taro.Config
@@ -35,27 +36,41 @@ export default class Index extends Component<{}, LoginState> {
    * 提示和声明 navigationBarTextStyle: 'black' | 'white' 类型冲突, 需要显示声明类型
    */
   config: Config = {
-    navigationBarTitleText: '首页'
+    navigationBarTitleText: '首页',
+    usingComponents: {
+      'vant-loading': '../../components/vant-weapp/dist/loading/index'
+    }
   }
+  profileData: EncrypteDataObj
   constructor(props) {
     super(props)
-    const { mode, redirectUrl } = this.$router.params
     this.state = {
-      mode: mode === 'login' ? LoginModes.login : LoginModes.addProfile,
-      _csrf: '',
-      redirectUrl,
-      addProfileStep: addProfileSteps.preCheck
+      // _csrf: '',
+      loginStep: LoginSteps.preCheck
     }
   }
   componentWillMount() { }
 
   componentDidMount() {
-    if (this.state.mode === LoginModes.login ) {
-      this.loginPost()
+    if (this.state.loginStep === LoginSteps.preCheck) {
+      this.preCheck()
     }
   }
-
-  componentWillUnmount() { }
+  async preCheck() {
+    const {authSetting} = await Taro.getSetting()
+    if (authSetting['scope.userInfo']) {
+      
+      this.loginPost()
+    } else {
+      this.setState({
+        loginStep: LoginSteps.reqUserInfoPower
+      })
+    }
+  }
+  handleGetUserInfo (e) {
+    console.log('e', e)
+    this.loginPost()
+  }
   fetchCsrfToken(cb) {
     dispatch({
       type: 'center/login',
@@ -88,20 +103,30 @@ export default class Index extends Component<{}, LoginState> {
     }
   }
   loginPost() {
-    const { _csrf, redirectUrl } = this.state
     Taro.login({
       timeout: 3000,
-      success: (res) => {
+      success: async (res) => {
+        const {encryptedData, iv} = await Taro.getUserInfo({
+          withCredentials: true
+        })
+        const profileData = {
+          encryptedData,
+          iv
+        }
         dispatch({
           type: 'center/login',
           payload: {
             data: {
-              code: res.code
+              code: res.code,
+              profileData
             }
           }
         }).then(res => {
           if (res.code === 0) {
             console.log('login success')
+            this.props.dispatch({
+              type: 'center/fetchMineInfo'
+            })
             Taro.navigateBack({
               delta: 1
             })
@@ -122,13 +147,28 @@ export default class Index extends Component<{}, LoginState> {
       },
     })
   }
-  test () {
-    console.log('click')
-  }
   render() {
+    const { loginStep } = this.state
+    const { loginPostLoading } = this.props
     return (
-      <View className='index'>
-        <Text  onClick={this.test.bind(this)}>Hello world 22222!</Text>
+      <View className='loginBox'>
+        {
+          loginStep === LoginSteps.preCheck && <View className="preCheckStepBox">
+            <Text>加载中...</Text>
+            <vant-loading size="16px" />
+          </View>
+        }
+        {
+          loginStep === LoginSteps.reqUserInfoPower && <View className="reqUserInfoStepBox">
+            <Button openType="getUserInfo" onGetUserInfo={this.handleGetUserInfo.bind(this)}>授权登录</Button>
+            {
+              loginPostLoading && <View className="bottom">
+                <Text>登录中...</Text>
+                <vant-loading size="16px" />
+              </View>
+            }
+          </View>
+        }
       </View>
     )
   }
