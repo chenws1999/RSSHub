@@ -8,8 +8,10 @@ const FeedItem = require('../models/FeedItem')
 const UserSnapshot = require('../models/UserSnapshot')
 const UserFeedItem = require('../models/UserFeedItem')
 
+const {RedisKeys} = require('../lib/enums')
 const {sendTemplate} = require('../lib/wechat')
 const settings = require('../config/settings')
+const redis = require('../lib/redis')
 
 const getIdStr = (item) => {
 	if (typeof item === 'object' && item._id) {
@@ -35,6 +37,7 @@ async function main (user, snapshot, feedList, feedItemList) {
 				lastFetch: feed.lastFetch,
 				lastSnapshot: feed.lastSnapshot,
 				lastUpdateCount: feed.lastUpdateCount,
+				icon: feed.icon,
 				feed: feed._id,
 				name: userFeed.name || feed.originName
 			})
@@ -64,6 +67,8 @@ async function main (user, snapshot, feedList, feedItemList) {
 			feeds: validPushFeeds,
 		})
 		await userSnapshot.save()
+		await redis.set(RedisKeys.userMessageUpdateTime(user._id), Date.now(), 'EX', 3600 * 24 * 5)
+		
 	}
 
 	console.log(userFeedItems.length, 'length')

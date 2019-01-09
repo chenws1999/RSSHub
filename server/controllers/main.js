@@ -14,6 +14,7 @@ const getCtx = require('../lib/ctx')
 const settings = require('../config/settings.js')
 const Enums = require('../lib/enums')
 const redis = require('../lib/redis')
+const DecryptWxData = require('../lib/wxbizdatacrypt')
 const { feedService, feedOriginService } = require('./service')
 const { RedisKeys, FeedOriginPriorityTypes, FeedOriginParamTypes } = Enums
 
@@ -376,24 +377,23 @@ exports.getPushFeedItemList = async function (req, res) {
 }
 
 exports.getPushRecordList = async function (req, res) {
-	const { after } = req.query
-	const unread = parseInt(req.query.unread)
+	const { position } = req.query
+	// const unread = parseInt(req.query.unread)
 	const limit = 5
 	const user = req.user
 
 	const query = { user }
-	if (after) {
+	if (position) {
 		query.pushTime = {
-			$lt: after
+			$lt: position
 		}
 	}
-	if (unread) {
-		query.unread = 1
-	}
+
 	const list = await UserSnapshot.find(query).sort({ pushTime: -1 }).limit(limit)
 	res.json({
 		code: 0,
 		list,
+		position: list.length ? list[list.length - 1].pushTime : null
 	})
 }
 
@@ -476,7 +476,11 @@ exports.login = async (req, res) => {
 	if (req.isAuthenticated()) {
 		throw new Error('已登录,请勿重复登录`')
 	}
-	const { code } = req.body
+	const { code, profileData,  } = req.body
+	const {encryptedData, iv} = profileData
+	if (!code || !encryptedData || !iv) {
+		throw new Error('invalid data')
+	}
 	const wxUrl = 'https://api.weixin.qq.com/sns/jscode2session'
 	const wxRes = await request(wxUrl, {
 		method: 'GET',
@@ -493,14 +497,26 @@ exports.login = async (req, res) => {
 	}
 
 	const { openid: openId, session_key: sessionKey } = wxRes
+	req.session.sessionKey = sessionKey
+	const DecryptWxDataUtil = new DecryptWxData(settings.appId, sessionKey)
+	const {nickName, gender, city, province, country, avatarUrl} = DecryptWxDataUtil.decryptData(encryptedData, iv)
+
 
 	let user = await User.findOne({ openId })
 	if (!user) {
 		user = new User({
 			openId,
 		})
-		await user.save()
 	}
+	Object.assign(user, {
+		name: nickName,
+		gender,
+		headImg: avatarUrl,
+		city,
+		province,
+		country,
+	})
+	await user.save()
 	await toPromise(req.logIn.bind(req))(user)
 	req.session.sessionKey = sessionKey
 
@@ -526,6 +542,21 @@ exports.getMineInfo = async (req, res) => {
 		// _csrf: req.csrfToken()
 	})
 }
+
+exports.getHomeInfo = async (req, res) => {
+	const user = req.user
+	
+	const messageUpdateTimeKey = Enums.RedisKeys.userMessageUpdateTime(user._id)
+	const messageTime = await redis.get(messageUpdateTimeKey)
+
+	res.json({
+		code: 0,
+		user,
+		lastMessageTime: messageTime
+	})
+}
+
+
 
 exports.getOverview = async (req, res) => {
 	const user = req.user

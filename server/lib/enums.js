@@ -14,7 +14,8 @@ module.exports = {
 		accessToken: _ => 'weappaccesstoken',
 		userFormIds: uid => `templateformids:${uid}`,
 		newlyUserFeeds: _ => 'newlyUserFeeds',
-		userCollections: uid => `usercollections:${uid}`
+		userCollections: uid => `usercollections:${uid}`,
+		userMessageUpdateTime: uid => `userMessageUpdateTime:${uid}`,
 	},
 	FeedOriginTypes: {
 		diff: 'diff',
@@ -32,6 +33,7 @@ module.exports = {
 	FeedFetchStatus: {
 		new: 'new', // 新建 尚未进行初始化拉取
 		init: 'init', // 进行了初始化拉取
+		initFailed: 'initFailed', // 初始化拉取失败
 		normal: 'normal', // 正常
 	},
 	FeedItemTypes: {

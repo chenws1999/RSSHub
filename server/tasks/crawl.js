@@ -122,12 +122,17 @@ async function main() {
 			await UserFeed.updateOne({_id: task._id}, task)
 
 		} catch (e) {
-			console.log(`user feed ${task._id}/ ${task.user} /${task.fee} task error \n ------------- \n`)
+			console.log(`user feed ${task._id}/ ${task.user} /${task.feed} task error \n ------------- \n`)
 			console.error(e)
 			const key = task.feed.toString()
 			if (feedCacheMap[key] === feedMapTypes.pendding) {
 				feedCacheMap[key] = null
 			}
+			await Feed.updateOne({_id: task.feed}, {
+				$set: {
+					fetchStatus: Enums.FeedFetchStatus.initFailed
+				}
+			})
 		}
 	}
 

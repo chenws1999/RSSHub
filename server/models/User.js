@@ -8,8 +8,13 @@ const User = new mongoose.Schema({
 	updateAt: {type: Date, default: Date.now},
 	openId: {type: String, unique: true},
 	name: String,
+	gender: Number,
+	headImg: String,
+	city: String,
+	province: String,
+	country: String,
 	lastLogin: String,
-	
+
 	collectCount: {type: Number, default: 0},
 	subscribeCount: {type: Number, default: 0}
 })
