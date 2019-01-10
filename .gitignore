@@ -17,5 +17,5 @@ tmp
 .history
 .vscode
 server/config/settings.js
-
+server/test/
 dist/

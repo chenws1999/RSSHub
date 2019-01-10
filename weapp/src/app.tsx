@@ -32,7 +32,8 @@ class App extends Component {
       'pages/subscribe/index',
       'pages/subscribeAction/index',
       'pages/home/index',
-      'pages/feed/index',
+      'pages/myCollect/index',
+      'pages/subscribedFeed/index',
       'pages/message/index',
       'pages/login/index',
     ],
@@ -49,7 +50,7 @@ class App extends Component {
       selectedColor: '#1989fa',
       list: [
         {
-          pagePath: "pages/index/index",
+          pagePath: "pages/subscribedFeed/index",
           iconPath: "static/message.png",
           selectedIconPath: 'static/message2.png',
           text: "更新"

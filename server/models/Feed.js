@@ -16,7 +16,7 @@ const FeedSchema = new mongoose.Schema({
 	lastUpdate: {type: Date, default: Date.now}, // 最近一次源更新
 	lastFetch: {type: Date}, // 最近一次请求是否更新
 	lastSnapshot: {type: ObjectId, ref: 'Snapshot'}, // 最近一次更新的快照
-	lastUpdateCount: Number,
+	lastUpdateCount: {type: Number, default: 0},
 	lastItems: [{
 		title: String,
 		link: String,

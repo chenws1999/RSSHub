@@ -9,40 +9,42 @@ import { FeedItem, FeedItemContentTypes, UserFeedItem, User } from '../../propTy
 import './index.less'
 
 interface reduxFeedItem extends UserFeedItem {
-	feedItem: FeedItem,
+	feedItemId: FeedItem,
+	pubDate: string,
 	descLineCount: number
 }
 
-interface PushlineProps {
+interface MyCollectProps {
 	_csrf: '',
 	user: User,
 	dispatch: (action: {}) => Promise<any>,
 	feedItemList: reduxFeedItem[],
 	position: string,
+	isRefreshList: boolean,
 	itemListLoading: boolean,
 	collectActionLoading: boolean,
 }
 
-interface PushlineState {
+interface MyCollectState {
 	showAllDescItems: string[]
 }
 
 enum DescShowModes { showAll, hidden, clickShowAll }
 
 
-@connect(({ center, loading, pushline }) => ({
+@connect(({ center, loading, myCollect }) => ({
 	...center,
-	...pushline,
-	itemListLoading: loading.effects['pushline/fetchUserFeedItemList'],
-	collectActionLoading: loading.effects['pushline/deleteCollectUserFeedItem' || 'pushline/collectUserFeedItem']
+	...myCollect,
+	itemListLoading: loading.effects['myCollect/fetchUserFeedItemList'],
+	collectActionLoading: loading.effects['myCollect/deleteCollectUserFeedItem' || 'myCollect/collectUserFeedItem']
 }), null)
-export default class Pushline extends Component<PushlineProps, PushlineState> {
+export default class Pushline extends Component<MyCollectProps, MyCollectState> {
 
 	static options = {
 		addGlobalClass: true
 	}
 	config: Config = {
-		navigationBarTitleText: '首页',
+		navigationBarTitleText: '我的收藏',
 		usingComponents: {
 			'vant-loading': '../../components/vant-weapp/dist/loading/index'
 		}
@@ -67,10 +69,11 @@ export default class Pushline extends Component<PushlineProps, PushlineState> {
 	}
 	componentWillUnmount() {
 		this.props.dispatch({
-			type: 'pushline/saveData',
+			type: 'myCollect/saveData',
 			payload: {
 				feedItemList: [],
 				position: null,
+				isRefreshList: false,
 			}
 		})
 	}
@@ -89,7 +92,7 @@ export default class Pushline extends Component<PushlineProps, PushlineState> {
 		const { dispatch } = this.props
 		console.log('inner ')
 		const res = dispatch({
-			type: 'pushline/fetchUserFeedItemList',
+			type: 'myCollect/fetchFeedItemList',
 			payload: {
 				params: {
 					position
@@ -142,7 +145,7 @@ export default class Pushline extends Component<PushlineProps, PushlineState> {
 		const isCollected = !!item.userCollectId
 		if (isCollected) {
 			dispatch({
-				type: 'pushline/deleteCollectUserFeedItem',
+				type: 'myCollect/deleteCollectUserFeedItem',
 				payload: {
 					data: {
 						userCollectId: item.userCollectId
@@ -152,7 +155,7 @@ export default class Pushline extends Component<PushlineProps, PushlineState> {
 			})
 		} else {
 			dispatch({
-				type: 'pushline/collectUserFeedItem',
+				type: 'myCollect/collectUserFeedItem',
 				payload: {
 					data: {
 						userFeedItemId: item._id,
@@ -184,13 +187,13 @@ export default class Pushline extends Component<PushlineProps, PushlineState> {
 		})
 	}
 	render() {
-		const { feedItemList, itemListLoading, position } = this.props
+		const { feedItemList, itemListLoading, position, isRefreshList } = this.props
 		const { showAllDescItems } = this.state
 		console.log(feedItemList, 'render pushline')
 		return <View>
 			{
 				feedItemList.map((item, itemIndex) => {
-					const { contentType, desc, title, imgs, link } = item.feedItem
+					const { contentType, desc, title, imgs, link, } = item.feedItemId
 					const isShortContent = contentType === FeedItemContentTypes.short
 					const descShowMode = item.descLineCount <= 4 ? DescShowModes.showAll : (
 						showAllDescItems.includes(item._id) ? DescShowModes.clickShowAll : DescShowModes.hidden
@@ -268,7 +271,7 @@ export default class Pushline extends Component<PushlineProps, PushlineState> {
 				})
 			}
 			{
-				itemListLoading && <View className="bottomLoading">
+				!isRefreshList && itemListLoading && <View className="bottomLoading">
 					<Text>加载中...</Text><vant-loading size="16px" />
 				</View>
 			}

@@ -3,6 +3,7 @@ import { View, Text, Image, Button } from '@tarojs/components'
 import { connect } from '@tarojs/redux'
 import bindClass from 'classnames'
 
+import Dialog from '../../components/vant-weapp/dist/dialog/dialog'
 import utils from '../../utils/utils'
 import { User } from '../../propTypes'
 import './index.less'
@@ -26,7 +27,7 @@ interface HomeState {
 	subscribeCount: number
 }
 
-const refreshTime = 1500
+const refreshTime = 800
 const refreshInterval = 17 // ms
 
 let count = 0
@@ -45,6 +46,7 @@ export default class Home extends Component<HomeProps, HomeState> {
 		enablePullDownRefresh: false,
 		usingComponents: {
 			'vant-loading': '../../components/vant-weapp/dist/loading/index'
+			'vant-dialog': '../../components/vant-weapp/dist/dialog/index'
 		}
 	}
 	originCountObj: {
@@ -101,20 +103,21 @@ export default class Home extends Component<HomeProps, HomeState> {
 					subscribeCount,
 				}
 				this.increaseCountObj = {}
-
-				this.startRefreshCount(Object.keys(this.originCountObj))
+				// setTimeout(this.startRefreshCount.bind(this, Object.keys(this.originCountObj)), refreshInterval)
+				this.timerId = setInterval(this.startRefreshCount.bind(this, Object.keys(this.originCountObj)), refreshInterval)
 			}
 		})
 	}
 	startRefreshCount(keys) {
-		console.log('keys', keys, count ++)
+		console.log('keys', keys, count++, this.increaseCountObj)
 		let validCount = 0
 		keys.forEach(key => {
 			const originValue = this.originCountObj[key]
 			let increaseCount = this.increaseCountObj[key]
 			if (!increaseCount) {
-				increaseCount = Math.ceil(originValue / (Math.floor(refreshTime / refreshInterval)))
-				this.increaseCountObj = increaseCount
+				const i = originValue / (Math.floor(refreshTime / refreshInterval))
+				increaseCount = i > 1 ? Math.ceil(i) : Number(i.toFixed(3))
+				this.increaseCountObj[key] = increaseCount
 			}
 
 			const nowValue = this.state[key] || 0
@@ -122,7 +125,7 @@ export default class Home extends Component<HomeProps, HomeState> {
 				this.setState({
 					[key]: originValue
 				})
-				validCount ++
+				validCount++
 			} else {
 				this.setState({
 					[key]: nowValue + increaseCount
@@ -131,7 +134,9 @@ export default class Home extends Component<HomeProps, HomeState> {
 		})
 
 		if (validCount !== keys.length) {
-			setTimeout(this.startRefreshCount.bind(this, keys), refreshInterval)
+			// setTimeout(this.startRefreshCount.bind(this, keys), refreshInterval)
+		} else {
+			clearInterval(this.timerId)
 		}
 
 	}
@@ -143,41 +148,57 @@ export default class Home extends Component<HomeProps, HomeState> {
 
 		}
 	}
+	gotoMenuPage (url) {
+		if (!url) {
+			Dialog.alert({
+				title: '未开放',
+				message: '紧张准备中....'
+			})
+			return
+		}
+		Taro.navigateTo({
+			url
+		})
+	}
 	render() {
 		const { name, headImg, subscribeCount, collectCount, joinDays } = this.state
 		return <View className="homeBox">
+			<vant-dialog id="van-dialog"/>
 			<View className="header">
 				<View className="left">
-					<Image src={utils.getUrl(headImg)} />
+					<View className="headimg">
+						<Image src={utils.getUrl(headImg)} />
+					</View>
+					<View className="name">{name}</View>
 				</View>
 				<View className="right">
 					<View className="item">
 						<Text className="label">已加入</Text>
 						<View className="value">
-							<Text className="count">{joinDays === null ? '-' : joinDays}</Text>
+							<Text className="count">{joinDays === null ? '-' : Math.floor(joinDays)}</Text>
 							<Text className="unit">天</Text>
 						</View>
 					</View>
 					<View className="item">
 						<Text className="label">已订阅</Text>
 						<View className="value">
-							<Text className="count">{subscribeCount === null ? '-' : subscribeCount}</Text>
+							<Text className="count">{subscribeCount === null ? '-' : Math.floor(subscribeCount)}</Text>
 							<Text className="unit">个</Text>
 						</View>
 					</View>
 					<View className="item">
 						<Text className="label">已收藏</Text>
 						<View className="value">
-							<Text className="count">{collectCount === null ? '-' : collectCount}</Text>
+							<Text className="count">{collectCount === null ? '-' : Math.floor(collectCount)}</Text>
 							<Text className="unit">条</Text>
 						</View>
 					</View>
 				</View>
 			</View>
 			<View className="menu">
-				<View className="menuItem">我的消息</View>
-				<View className="menuItem">我的收藏</View>
-				<View className="menuItem">帮助与反馈</View>
+				{/* <View className="menuItem">我的消息</View> */}
+				<View className="menuItem" onClick={this.gotoMenuPage.bind(this, '/pages/myCollect/index')}>我的收藏</View>
+				<View className="menuItem" onClick={this.gotoMenuPage.bind(this, null)}>帮助与反馈</View>
 			</View>
 		</View>
 	}

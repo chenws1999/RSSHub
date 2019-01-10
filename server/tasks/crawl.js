@@ -432,9 +432,10 @@ function resolveResDescFeild (htmlStr = '') {
 	$('img').each(function (i) {
 		if (i <= 2) {
 			const src = $(this).attr('src')
-			const newSrc = settings.baseUrl +  '/api/source/img?src=' + encodeURIComponent(src)
+			// const newSrc = settings.baseUrl +  '/api/source/img?src=' + encodeURIComponent(src)
 			// $(this).attr('src', newSrc)
-			imgs.push(newSrc)
+			// imgs.push(newSrc)
+			imgs.push(src)
 		}
 	})
 

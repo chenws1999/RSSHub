@@ -81,6 +81,7 @@ export interface Feed {
     originCode: string,
     originType: string,
     originName: string,
+    fetchStatus: FeedFetchStatus,
     lastUpdate: string,
     lastFetch: string,
     lastSnapshot: string | Snapshot,
@@ -112,7 +113,8 @@ export interface UserFeed {
     name: string,
     user: User | string,
     feed: Feed,
-    originCode: string
+    originCode: string,
+    stop: number
 }
 
 export interface FeedItem {
@@ -136,6 +138,14 @@ export interface FeedItem {
     desc: string,
 }
 
+export interface MyCollect {
+    _id: string,
+    createAt: string,
+    updateAt: string,
+    user: User,
+	feedItemId: FeedItem,
+	userFeedItem: UserFeedItem
+}
 export interface UserFeedItem {
     _id: string,
     createAt: string,
@@ -154,3 +164,18 @@ export interface UserFeedItem {
 export enum FeedItemContentTypes {short = 1, long = 2}
 export enum FeedOriginParamTypes { input = 'input', select = 'select', multiSelect = 'multiSelect' }
 export enum FeedOriginPriority { main = 'main', second = 'second' }
+
+export enum FeedFetchStatus {
+    new = 'new', // 新建 尚未进行初始化拉取
+    init = 'init', // 进行了初始化拉取
+    initFailed = 'initFailed', // 初始化拉取失败
+    normal = 'normal', // 正常
+}
+
+export enum UserFeedStatus {
+    stop = 'stop',
+    init = 'init',
+    initFailed = 'initFailed',
+    success = 'initSuccess',
+    normal = 'normal'
+}

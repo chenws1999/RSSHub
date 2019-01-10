@@ -7,9 +7,9 @@ const UserCollect = new mongoose.Schema({
 	createAt: {type: Date, default: Date.now},
 	updateAt: {type: Date, default: Date.now},
 	user: {type: ObjectId, unique: true},
-	feedItem: {type: ObjectId, ref: 'FeedItem'},
+	feedItemId: {type: ObjectId, ref: 'FeedItem'},
 	userFeedItem: {type: ObjectId, ref: 'UserFeedItem'},
-	uniqueKey: {type: String, unique: true}
+	uniqueKey: {type: String, unique: true},
 })
 
 UserCollect.pre('save', function(next) {

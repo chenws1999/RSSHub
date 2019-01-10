@@ -31,6 +31,10 @@ export async function collectItem (data) {
     } )
 }
 
+export async function getMyCollectList (params) {
+    return request('/user/collect/list?' + stringify(params) )
+}
+
 export async function deleteCollectedItem (data) {
     return request('/user/deleteCollect', {
         method: 'POST',

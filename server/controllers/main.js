@@ -578,21 +578,41 @@ exports.getOverview = async (req, res) => {
 
 
 exports.getMyFeedList = async function (req, res) {
-	const pn = parseInt(req.query.pn)
-	const limit = 15
 	const user = req.user
 
 	const list = await UserFeed.find({ user })
-		.populate({ path: 'feed', populate: 'origin' })
+		.populate({ path: 'feed', populate: 'origin', select: feedService.safeQuerySelect })
 		.sort({ createAt: -1 })
-		.skip(limit * pn)
-		.limit(limit)
 
 	res.json({
 		code: 0,
 		list
 	})
 }
+
+exports.getMyCollectList = async function (req, res) {
+	const { position } = req.query
+	const query = {
+		user: req.user,
+	}
+	if (position) {
+		query.createAt = {
+			$lt: position
+		}
+	}
+	const list = await UserCollect.find(query).sort({ createAt: -1 }).limit(15).populate('feedItemId')
+	// const list = await FeedItem.find({user: req.user}).limit(10)
+	// list[0].feedItem.imgs = ['https://ss0.baidu.com/7Po3dSag_xI4khGko9WTAnF6hhy/image/h%3D300/sign=f2db86688ccb39dbdec06156e01709a7/2f738bd4b31c87018e9450642a7f9e2f0708ff16.jpg',
+	// 'https://ss0.baidu.com/7Po3dSag_xI4khGko9WTAnF6hhy/image/h%3D300/sign=f2db86688ccb39dbdec06156e01709a7/2f738bd4b31c87018e9450642a7f9e2f0708ff16.jpg',
+	// 'https://ss0.baidu.com/7Po3dSag_xI4khGko9WTAnF6hhy/image/h%3D300/sign=f2db86688ccb39dbdec06156e01709a7/2f738bd4b31c87018e9450642a7f9e2f0708ff16.jpg']
+	res.json({
+		code: 0,
+		list,
+		position: list.length ? list[list.length - 1].pubDate : null
+	})
+}
+
+
 
 exports.collectFeedItem = async function (req, res) {
 	const { feedItemId, userFeedItemId } = req.body

@@ -12,6 +12,7 @@ const UserFeedSchema = new mongoose.Schema({
 	feedOrigin: {type: ObjectId, ref: 'FeedOrigin'},
 	originCode: {type: String, required: true},
 	name: String,
+	stop: {type: Number, default: 0},
 	nextFetch: {type: Date, required: true}, //下次更新时间
 })
 
