@@ -177,8 +177,8 @@ async function main() {
 				return
 			}
 			console.log(`update user's tasks: ${user.openId}/${user.name}`)
-			// const tasks = await UserFeed.find({ user, nextFetch: { $lte: new Date() } })
-			const tasks = await UserFeed.find({user})
+			const tasks = await UserFeed.find({ user, nextFetch: { $lte: new Date() } })
+			// const tasks = await UserFeed.find({user})
 			const taskUpdatedFeeds = [], taskUpdatedFeedItems = []
 			console.log(`user task count: ${tasks.length}`)
 			for (let task of tasks) {

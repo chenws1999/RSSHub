@@ -464,6 +464,7 @@ const config = {
 				desc: '分区视频',
 				routePath: 'bilibili/partion',
 				updateInterval: 60 * 30,
+				icon: 'https://static.hdslb.com/images/favicon.ico',
 				params: [{
 					name: '分区',
 					key: 'tid',
@@ -477,6 +478,8 @@ const config = {
 				desc: '跟踪喜欢up主的最新动态哦!',
 				routePath: 'bilibili/dynamic',
 				updateInterval: 60 * 60 * 24,
+				icon: 'https://static.hdslb.com/images/favicon.ico',
+				pathToParamsRegExp: 'space.bilibili.com/:uid',
 				params: [{
 					name: 'up主id',
 					key: 'uid',
@@ -485,18 +488,18 @@ const config = {
 			}
 		},
 	},
-	weibo: {
-		name: '微博',
-		children: {
-			hotlist: {
-				name: '微博热搜榜',
-				type: Enums.FeedOriginTypes.diff,
-				desc: '微博热点追踪',
-				routePath: 'weibo/search/hot',
-				updateInterval: 60 * 30
-			},
-		},
-	},
+	// weibo: {
+	// 	name: '微博',
+	// 	children: {
+	// 		hotlist: {
+	// 			name: '微博热搜榜',
+	// 			type: Enums.FeedOriginTypes.diff,
+	// 			desc: '微博热点追踪',
+	// 			routePath: 'weibo/search/hot',
+	// 			updateInterval: 60 * 30
+	// 		},
+	// 	},
+	// },
 	tieba: {
 		name: '贴吧',
 		children: {
@@ -506,6 +509,7 @@ const config = {
 				desc: '贴吧帖子列表',
 				routePath: 'tieba/forum',
 				updateInterval: 60 * 30,
+				icon: 'https://tieba.baidu.com/favicon.ico',
 				params: [{
 					name: '吧名',
 					key: 'kw',
@@ -514,23 +518,23 @@ const config = {
 			},
 		},
 	},
-	weixin: {
-		name: '微信',
-		children: {
-			wechatapp: {
-				name: '公众号',
-				type: Enums.FeedOriginTypes.increase,
-				desc: '公众号更新提醒',
-				routePath: 'tencent/wechat/wasi',
-				updateInterval: 60 * 60 * 4,
-				params: [{
-					name: '公众号id',
-					key: 'id',
-					paramType: Enums.FeedOriginParamTypes.input,
-				}]
-			},
-		},
-	},
+	// weixin: {
+	// 	name: '微信',
+	// 	children: {
+	// 		wechatapp: {
+	// 			name: '公众号',
+	// 			type: Enums.FeedOriginTypes.increase,
+	// 			desc: '公众号更新提醒',
+	// 			routePath: 'tencent/wechat/wasi',
+	// 			updateInterval: 60 * 60 * 4,
+	// 			params: [{
+	// 				name: '公众号id',
+	// 				key: 'id',
+	// 				paramType: Enums.FeedOriginParamTypes.input,
+	// 			}]
+	// 		},
+	// 	},
+	// },
 	jianshu: {
 		name: '简书',
 		children: {
@@ -540,6 +544,8 @@ const config = {
 				desc: '跟踪喜欢的作者更新哦!',
 				routePath: 'jianshu/user',
 				updateInterval: 60 * 60 * 4,
+				icon: 'https://www.jianshu.com/favicon.ico',
+				pathToParamsRegExp: 'www.jianshu.com/u/:id',
 				params: [{
 					name: '作者id',
 					key: 'id',
@@ -548,42 +554,43 @@ const config = {
 			},
 		},
 	},
-	zhihu: {
-		name: '知乎',
-		children: {
-			hotlist: {
-				name: '知乎热榜',
-				type: Enums.FeedOriginTypes.diff,
-				desc: '知乎er们在关注什么!!',
-				routePath: 'zhihu/hotlist',
-				updateInterval: 60 * 60 * 4,
-			},
-		},
-	},
-	douban: {
-		name: '豆瓣',
-		children: {
-			latermovie: {
-				name: '即将上映的电影',
-				type: Enums.FeedOriginTypes.increase,
-				desc: '选一选片儿吧',
-				routePath: 'douban/later',
-				updateInterval: 60 * 60 * 24,
-			},
-		},
-	},
-	a9vg: {
-		name: 'a9vg News 游戏新闻',
-		children: {
-			latermovie: {
-				name: 'a9vg最新新闻',
-				type: Enums.FeedOriginTypes.increase,
-				desc: '游戏新闻...',
-				routePath: 'a9vg/a9vg',
-				updateInterval: 60 * 60 * 24,
-			},
-		},
-	},
+	// zhihu: {
+	// 	name: '知乎',
+	// 	children: {
+	// 		hotlist: {
+	// 			name: '知乎热榜',
+	// 			type: Enums.FeedOriginTypes.diff,
+	// 			desc: '知乎er们在关注什么!!',
+	// 			routePath: 'zhihu/hotlist',
+	// 			updateInterval: 60 * 60 * 4,
+	// 		},
+	// 	},
+	// },
+	// douban: {
+	// 	name: '豆瓣',
+	// 	children: {
+	// 		latermovie: {
+	// 			name: '即将上映的电影',
+	// 			type: Enums.FeedOriginTypes.increase,
+	// 			desc: '选一选片儿吧',
+	// 			routePath: 'douban/later',
+	// 			updateInterval: 60 * 60 * 24,
+	// 			icon: 'https://www.douban.com/favicon.ico'
+	// 		},
+	// 	},
+	// },
+	// a9vg: {
+	// 	name: 'a9vg News 游戏新闻',
+	// 	children: {
+	// 		latermovie: {
+	// 			name: 'a9vg最新新闻',
+	// 			type: Enums.FeedOriginTypes.increase,
+	// 			desc: '游戏新闻...',
+	// 			routePath: 'a9vg/a9vg',
+	// 			updateInterval: 60 * 60 * 24,
+	// 		},
+	// 	},
+	// },
 	// netease: {
 	// 	name: '网易',
 	// 	children: {

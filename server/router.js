@@ -26,7 +26,6 @@ apiRouter.use(mainCtrl.isLogin)
 apiRouter.get('/user/myfeedList', catchError(mainCtrl.getMyFeedList))
 apiRouter.get('/user/info', catchError(mainCtrl.getMineInfo))
 apiRouter.get('/user/homeInfo', catchError(mainCtrl.getHomeInfo))
-apiRouter.get('/user/overview', catchError(mainCtrl.getOverview))
 apiRouter.get('/user/collect/list', catchError(mainCtrl.getMyCollectList))
 apiRouter.post('/user/collect', catchError(mainCtrl.collectFeedItem))
 apiRouter.post('/user/deleteCollect', catchError(mainCtrl.deleteCollectItem))
@@ -39,7 +38,7 @@ apiRouter.get('/feed/items', catchError(mainCtrl.getFeedItemList))
 apiRouter.get('/feed/origin/list', catchError(mainCtrl.getFeedOriginListV2))
 
 apiRouter.get('/push/feedItems', catchError(mainCtrl.getPushFeedItemList))
-apiRouter.get('/push/list', catchError(mainCtrl.getPushRecordList)) //消息通知
+apiRouter.get('/push/messageList', catchError(mainCtrl.getPushRecordList)) //消息通知
 apiRouter.post('/push/read', catchError(mainCtrl.readPushRecord))
 apiRouter.post('/push/formId', catchError(mainCtrl.recieveFormId))
 

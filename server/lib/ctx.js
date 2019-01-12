@@ -13,6 +13,7 @@ module.exports = function getCtx ({query = {}, params = {}, path = '/'}) {
 				return v;
 			}
 		},
-		path: path
+		path: path,
+		_matchedRoute: '',
 	}
 }

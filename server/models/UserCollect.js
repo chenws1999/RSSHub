@@ -6,8 +6,11 @@ const ObjectId = Schema.ObjectId
 const UserCollect = new mongoose.Schema({
 	createAt: {type: Date, default: Date.now},
 	updateAt: {type: Date, default: Date.now},
-	user: {type: ObjectId, unique: true},
+	user: {type: ObjectId},
 	feedItemId: {type: ObjectId, ref: 'FeedItem'},
+	feedOriginType: String,
+	feedIcon: String, //头像地址
+	feedName: String,
 	userFeedItem: {type: ObjectId, ref: 'UserFeedItem'},
 	uniqueKey: {type: String, unique: true},
 })

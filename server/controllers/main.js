@@ -177,7 +177,7 @@ exports.preCheckSubscribe = async function (req, res) {
 	console.log(feedOriginId, paramsObj)
 	const feedOrigin = await FeedOrigin.findById(feedOriginId).lean()
 	if (!feedOrigin) {
-		throw new Error('invalid origin id')
+		throw new Error('无效的订阅源')
 	}
 
 	const signatureStr = generateFeedSignatureStrByObj(feedOrigin, paramsObj)
@@ -238,13 +238,13 @@ exports.subscribeFeed = async function (req, res) {
 	const feedOrigin = await FeedOrigin.findById(originId)
 
 	if (!feedOrigin) {
-		throw new Error('invalid feild id')
+		throw new Error('无效的订阅源')
 	}
 	if (feedOrigin.priority === Enums.FeedOriginPriorityTypes.main) {
 		throw new Error('暂不支持订阅一级源')
 	}
 
-	if (!userFeedId && user.subscribeCount >= settings.subscribeLimit) {
+	if (!userFeedId && (user.subscribeCount >= settings.subscribeLimit && !settings.whiteUserList.includes(user._id.toString())) ){
 		throw new Error('超过订阅上限')
 	}
 
@@ -256,12 +256,12 @@ exports.subscribeFeed = async function (req, res) {
 			const postValue = postParams[key]
 			let value = postValue
 			if (!postValue) {
-				throw new Error('loss param filed data: ' + key)
+				throw new Error('字段缺失: ' + name)
 			}
 			if ([FeedOriginParamTypes.multiSelect, FeedOriginParamTypes.select].includes(paramType)) {
 				const findOne = getPickerValue(range, postValue)
 				if (!findOne) {
-					throw new Error(`param: ${key}'s value invalid`)
+					throw new Error(`${name}字段的值无效`)
 				}
 				value = findOne.value
 			}
@@ -284,6 +284,7 @@ exports.subscribeFeed = async function (req, res) {
 			fetchStatus: Enums.FeedFetchStatus.new,
 			params,
 			signatureStr,
+			icon: feedOrigin.icon,
 			routePath: feedOrigin.routePath,
 			updateInterval: feedOrigin.updateInterval
 		})
@@ -294,7 +295,7 @@ exports.subscribeFeed = async function (req, res) {
 	if (userFeedId) {
 		oldRecord = await UserFeed.findOne({ _id: userFeedId, user })
 		if (!oldRecord) {
-			throw new Error('invalid userfeedid')
+			throw new Error('无效的参数')
 		}
 	}
 
@@ -340,7 +341,7 @@ exports.unsubscribeFeed = async function (req, res) {
 	const query = userFeedId ? { _id: userFeedId } : { feed: feedId, user }
 	const userFeed = await UserFeed.findOne(query)
 	if (!userFeed) {
-		throw new Error('invalid userfeed')
+		throw new Error('无效参数')
 	}
 	if (userFeed.user._id.toString() !== user._id.toString()) {
 		throw new Error('越权操作')
@@ -433,7 +434,10 @@ exports.getFeedItemList = async function (req, res) {
 
 	let list = []
 	if (userFeed) {
-		const query = {}
+		const query = {
+			feed: feedId,
+			user
+		}
 		if (position) {
 			query.pubDate = {
 				$lt: position
@@ -479,7 +483,7 @@ exports.login = async (req, res) => {
 	const { code, profileData,  } = req.body
 	const {encryptedData, iv} = profileData
 	if (!code || !encryptedData || !iv) {
-		throw new Error('invalid data')
+		throw new Error('无效数据')
 	}
 	const wxUrl = 'https://api.weixin.qq.com/sns/jscode2session'
 	const wxRes = await request(wxUrl, {
@@ -493,7 +497,9 @@ exports.login = async (req, res) => {
 		json: true
 	})
 	if (wxRes.errcode) {
-		throw new Error('wx server error: ' + wxRes.errcode + wxRes.errmsg)
+		console.error('wx server error: ' + wxRes.errcode + wxRes.errmsg)
+		throw new Error('授权错误')
+		// throw new Error('wx server error: ' + wxRes.errcode + wxRes.errmsg)
 	}
 
 	const { openid: openId, session_key: sessionKey } = wxRes
@@ -618,12 +624,20 @@ exports.collectFeedItem = async function (req, res) {
 	const { feedItemId, userFeedItemId } = req.body
 	const user = req.user
 	if (!feedItemId || !userFeedItemId) {
-		throw new Error('invalid body')
+		throw new Error('提交数据有误')
 	}
+	const userFeedItem = await UserFeedItem.findById(userFeedItemId)
+	if (!userFeedItem) {
+		throw new Error('提交数据有误')
+	}
+
 	const newRecord = new UserCollect({
 		user,
 		feedItemId,
 		userFeedItem: userFeedItemId,
+		feedOriginType: userFeedItem.feedOriginType,
+		feedIcon: userFeedItem.feedIcon, //头像地址
+		feedName: userFeedItem.feedName,
 		uniqueKey: user._id + feedItemId
 	})
 	await newRecord.save()
@@ -651,13 +665,13 @@ exports.collectFeedItem = async function (req, res) {
 exports.deleteCollectItem = async function (req, res) {
 	const { userCollectId } = req.body
 	if (!userCollectId) {
-		throw new Error('invalid body')
+		throw new Error('提交数据有误')
 	}
 
 	const user = req.user
 	const item = await UserCollect.findById(userCollectId)
 	if (!item) {
-		throw new Error('not found item')
+		throw new Error('目标不存在')
 	}
 	await item.remove()
 
@@ -704,7 +718,7 @@ const setUserFormId = async (key, formIdObj) => {
 exports.recieveFormId = async function (req, res) {
 	const { formId } = req.body
 	if (!formId) {
-		throw new Error('invalid formId')
+		throw new Error('无效数据')
 	}
 	const redisKey = RedisKeys.userFormIds(req.user._id)
 	const expireAt = Date.now() + (7 * 24 * 60 * 60) * 1000
@@ -737,7 +751,7 @@ exports.recieveFormId = async function (req, res) {
 exports.fetchCrosFile = async function (req, res) {
 	const { src } = req.query
 	if (!src) {
-		throw new Error('invalid source')
+		throw new Error('资源无效')
 	}
 	const resFile = await request(src, {
 		encoding: null,
