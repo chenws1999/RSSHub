@@ -3,9 +3,11 @@ import { View, Text, RichText, Image, Button, Input } from '@tarojs/components'
 import { connect } from '@tarojs/redux'
 import bindClass from 'classnames'
 import pathToRegExp from 'path-to-regexp'
+import Url from 'url-parse'
 
 import MyIcon from '../../components/Icon/index'
 import MyPicker from '../../components/Picker/index'
+import utils from '../../utils/utils'
 import { FeedItem, UserFeedItem, FeedOrigin, FeedOriginParamTypes } from '../../propTypes'
 import './index.less'
 
@@ -13,6 +15,7 @@ import './index.less'
 interface SubscribeActionProps {
     _csrf: '',
     dispatch: (action: {}) => Promise<any>,
+    initLoading: boolean,
     preCheckLoading: boolean,
     subscribeLoading: boolean,
     focusFeedOrigin: FeedOrigin,
@@ -50,19 +53,21 @@ const stepLabelArr = [
 @connect(({ center, loading, subscribe }) => ({
     ...center,
     ...subscribe,
+    initLoading: loading.effects['subscribe/fetchFeedOriginItem'],
     subscribeLoading: loading.effects['subscribe/subscribeFeedByParams'],
     preCheckLoading: loading.effects['subscribe/preCheckSubscribeFeed'],
 }), null)
 export default class SubscribeAction extends Component<SubscribeActionProps, SubscribeState> {
 
     config: Config = {
-        navigationBarTitleText: '首页',
+        navigationBarTitleText: '添加订阅',
         disableScroll: true,
         enablePullDownRefresh: false,
         usingComponents: {
             'vant-loading': '../../components/vant-weapp/dist/loading/index',
             'vant-steps': '../../components/vant-weapp/dist/steps/index',
-            'vant-field': '../../components/vant-weapp/dist/field/index'
+            'vant-field': '../../components/vant-weapp/dist/field/index',
+			'vant-notify': '../../components/vant-weapp/dist/notify/index',
         }
     }
     originId: string
@@ -80,9 +85,13 @@ export default class SubscribeAction extends Component<SubscribeActionProps, Sub
     componentWillMount() { }
 
     componentDidMount() {
+        this.clearReduxData()
         this.fetchFeedOriginItem()
     }
     componentWillUnmount() {
+        this.clearReduxData()
+    }
+    clearReduxData () {
         this.props.dispatch({
             type: 'subscribe/saveData',
             payload: {
@@ -161,7 +170,7 @@ export default class SubscribeAction extends Component<SubscribeActionProps, Sub
             const paramsInfoArr: { name: string }[] = []
             const pathRegExp = pathToRegExp(focusFeedOrigin.pathToParamsRegExp, paramsInfoArr, { end: false })
             // const pathRegExp = pathToRegExp('www.jianshu.com/u/:id', paramsInfoArr, { end: false })
-            const urlObj = new webkitURL(searchPathValue)
+            const urlObj = new Url(searchPathValue)
             const testValue = urlObj.hostname + urlObj.pathname
             const parsedData = pathRegExp.exec(testValue) || []
             const parsedValueArr = parsedData.slice(1)
@@ -261,7 +270,7 @@ export default class SubscribeAction extends Component<SubscribeActionProps, Sub
         Taro.navigateBack()
     }
     render() {
-        const { focusFeedOrigin, preCheckLoading, isPreCheckValid, searchFeedInfo } = this.props
+        const { focusFeedOrigin, preCheckLoading, isPreCheckValid, searchFeedInfo, initLoading } = this.props
         const { step, searchPathValue, params, name, isValidSearchPath } = this.state
         console.log('render')
 
@@ -298,7 +307,13 @@ export default class SubscribeAction extends Component<SubscribeActionProps, Sub
 
         const paramsConfigArr = focusFeedOrigin ? (focusFeedOrigin.params || []) : []
         return <View className="box">
+			<vant-notify id="van-notify" />
             <vant-steps customClass="stepClass" steps={stepLabelArr} active={step} activeColor="#1989fa" />
+           {
+               initLoading &&  <View className="initLoading">
+                    <Text>加载中</Text><vant-loading size="16px"/>
+               </View>
+           }
             <View className="content">
                 {
                     step === FeedSubscribeActionSteps.searchFeed &&

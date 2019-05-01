@@ -1,6 +1,7 @@
 import APIS from '../service/index'
-import {formatTime} from './util'
-import {UserFeed, Feed, UserFeedItem} from '../propTypes'
+import {formatTime, getUserFeedStatus} from './util'
+import {UserFeed, UserFeedItem, UserFeedStatus} from '../propTypes'
+import Dialog from '../components/vant-weapp/dist/dialog/dialog'
 
 import Taro from '@tarojs/taro'
 
@@ -22,13 +23,33 @@ const transformUserFeedItem = (item: UserFeedItem) => {
 
 const getFeedInfoObj = (userFeed: UserFeed) => {
     if (!userFeed) {
-        return null
+        Dialog.alert({
+            title: '无效访问',
+            message: '您还没有订阅该源哦！',
+            showCancelButton: false,
+        }).then(res => {
+            Taro.navigateBack()
+        })
+        return {
+            name: '无',
+            lastUpdate: '暂无',
+            subscribeTime: '暂无'
+        }
     }
+    const status = getUserFeedStatus(userFeed)
+
     const {name, feed, createAt} = userFeed
-    feed.name = name || feed.originName
-    feed.lastUpdate = formatTime(feed.lastUpdate)
-    feed.subscribeTime = formatTime(createAt)
-    return feed
+
+    const lastUpdate = [UserFeedStatus.normal].includes(status) ? `${formatTime(feed.lastUpdate)}条` : '暂无'
+    const lastUpdateCount = [UserFeedStatus.normal].includes(status) ? feed.lastUpdateCount : '暂无'
+    
+    return {
+        ...feed,
+        name: name || feed.originName,
+        lastUpdate,
+        lastUpdateCount,
+        subscribeTime: formatTime(createAt),
+    }
 }
 
 export default {
@@ -51,7 +72,7 @@ export default {
                 yield put({
                     type: 'saveData',
                     payload: {
-                        list: list.map(transformUserFeedItem)
+                        feedItemList: list.map(transformUserFeedItem)
                     }
                 })
                 Taro.stopPullDownRefresh()

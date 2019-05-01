@@ -1,3 +1,5 @@
+const path = require('path')
+
 const config = {
   projectName: 'weapp',
   date: '2018-12-9',
@@ -33,6 +35,9 @@ const config = {
     ],
     options: {
     }
+  },
+  alias: {
+    '@utils': path.resolve(__dirname, '..', 'src/utils/utils')
   },
   weapp: {
     compile: {

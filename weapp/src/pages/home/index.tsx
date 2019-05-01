@@ -3,6 +3,8 @@ import { View, Text, Image, Button } from '@tarojs/components'
 import { connect } from '@tarojs/redux'
 import bindClass from 'classnames'
 
+import MyForm from '../../components/Form/index'
+import MyIcon from '../../components/Icon/index'
 import Dialog from '../../components/vant-weapp/dist/dialog/dialog'
 import utils from '../../utils/utils'
 import { User } from '../../propTypes'
@@ -14,8 +16,10 @@ interface reduxUser extends User {
 
 interface HomeProps {
 	_csrf: '',
+	isCheckIn: boolean,
 	dispatch: (action: {}) => Promise<any>,
 	infoLoading: boolean,
+	checkInLoading: boolean,
 	homeUserInfo: reduxUser,
 }
 
@@ -31,11 +35,13 @@ const refreshTime = 800
 const refreshInterval = 17 // ms
 
 let count = 0
+const FormIdCount = 20
 
 @connect(({ center, loading, home }) => ({
 	...center,
 	...home,
 	infoLoading: loading.effects['home/fetchHomeUserInfo'],
+	checkInLoading: loading.effects['center/checkIn'],
 }), null)
 export default class Home extends Component<HomeProps, HomeState> {
 
@@ -45,8 +51,9 @@ export default class Home extends Component<HomeProps, HomeState> {
 		navigationBarTitleText: '主页',
 		enablePullDownRefresh: false,
 		usingComponents: {
-			'vant-loading': '../../components/vant-weapp/dist/loading/index'
-			'vant-dialog': '../../components/vant-weapp/dist/dialog/index'
+			'vant-loading': '../../components/vant-weapp/dist/loading/index',
+			'vant-dialog': '../../components/vant-weapp/dist/dialog/index',
+			'vant-notify': '../../components/vant-weapp/dist/notify/index',
 		}
 	}
 	originCountObj: {
@@ -60,6 +67,7 @@ export default class Home extends Component<HomeProps, HomeState> {
 		subscribeCount: number,
 	}
 	timerId: any
+	formIds: []
 	constructor(props) {
 		super(props)
 		this.state = {
@@ -69,19 +77,30 @@ export default class Home extends Component<HomeProps, HomeState> {
 			collectCount: null,
 			subscribeCount: null,
 		}
+		this.formIds = []
 	}
-	componentWillMount() { }
+	componentWillMount() {
+		this.clearReduxData()
+		this.fetchHomeUserInfo()
+	}
 
 	componentDidMount() {
 		console.log('inner show')
 		// Taro.startPullDownRefresh()
-		this.fetchHomeUserInfo()
 		// this.readAllPushRecord()
 	}
 	componentWillUnmount() {
-
+		this.clearReduxData()
 	}
-
+	clearReduxData () {
+		this.props.dispatch({
+			type: 'home/saveData',
+			payload: {
+				homeUserInfo: null,
+				lastMessageTime: null 
+			}
+		})
+	}
 	fetchHomeUserInfo(position = null, refresh = false) {
 		const { dispatch } = this.props
 		console.log('inner ')
@@ -109,7 +128,7 @@ export default class Home extends Component<HomeProps, HomeState> {
 		})
 	}
 	startRefreshCount(keys) {
-		console.log('keys', keys, count++, this.increaseCountObj)
+		// console.log('keys', keys, count++, this.increaseCountObj)
 		let validCount = 0
 		keys.forEach(key => {
 			const originValue = this.originCountObj[key]
@@ -148,7 +167,7 @@ export default class Home extends Component<HomeProps, HomeState> {
 
 		}
 	}
-	gotoMenuPage (url) {
+	gotoMenuPage(url) {
 		if (!url) {
 			Dialog.alert({
 				title: '未开放',
@@ -160,39 +179,79 @@ export default class Home extends Component<HomeProps, HomeState> {
 			url
 		})
 	}
+	handleGetFormId(id: string) {
+		this.formIds.push(id)
+		if (this.formIds.length === FormIdCount) {
+			console.log('submit')
+			if (this.props.checkInLoading) {
+				return
+			}
+			this.props.dispatch({
+				type: 'center/checkIn',
+				payload: {
+					data: {
+						formIds: this.formIds,
+					}
+				}
+			})
+		}
+	}
 	render() {
 		const { name, headImg, subscribeCount, collectCount, joinDays } = this.state
+		const { isCheckIn, checkInLoading } = this.props
 		return <View className="homeBox">
-			<vant-dialog id="van-dialog"/>
+			<vant-notify id="van-notify" />
+			<vant-dialog id="van-dialog" />
 			<View className="header">
-				<View className="left">
-					<View className="headimg">
-						<Image src={utils.getUrl(headImg)} />
+				<View className="main">
+					<View className="left">
+						<View className="headimg">
+							<Image src={utils.getUrl(headImg)} lazyLoad={true} />
+						</View>
+						<View className="name">{name}</View>
 					</View>
-					<View className="name">{name}</View>
+					<View className="right">
+						<View className="item">
+							<Text className="label">已加入</Text>
+							<View className="value">
+								<Text className="count">{joinDays === null ? '-' : Math.floor(joinDays)}</Text>
+								<Text className="unit">天</Text>
+							</View>
+						</View>
+						<View className="item">
+							<Text className="label">已订阅</Text>
+							<View className="value">
+								<Text className="count">{subscribeCount === null ? '-' : Math.floor(subscribeCount)}</Text>
+								<Text className="unit">个</Text>
+							</View>
+						</View>
+						<View className="item">
+							<Text className="label">已收藏</Text>
+							<View className="value">
+								<Text className="count">{collectCount === null ? '-' : Math.floor(collectCount)}</Text>
+								<Text className="unit">条</Text>
+							</View>
+						</View>
+					</View>
 				</View>
-				<View className="right">
-					<View className="item">
-						<Text className="label">已加入</Text>
-						<View className="value">
-							<Text className="count">{joinDays === null ? '-' : Math.floor(joinDays)}</Text>
-							<Text className="unit">天</Text>
-						</View>
-					</View>
-					<View className="item">
-						<Text className="label">已订阅</Text>
-						<View className="value">
-							<Text className="count">{subscribeCount === null ? '-' : Math.floor(subscribeCount)}</Text>
-							<Text className="unit">个</Text>
-						</View>
-					</View>
-					<View className="item">
-						<Text className="label">已收藏</Text>
-						<View className="value">
-							<Text className="count">{collectCount === null ? '-' : Math.floor(collectCount)}</Text>
-							<Text className="unit">条</Text>
-						</View>
-					</View>
+				<View className="checkInBtn">
+					{
+						isCheckIn ? <View className="btnArea">
+								<MyIcon type="check" /> 已签到
+							</View> :
+							<MyForm num={FormIdCount} onGetFormId={this.handleGetFormId.bind(this)}>
+								<View className="btnArea">
+									{
+										checkInLoading && <vant-loading size="16px"/>
+									}
+									{
+
+										<Text>签到</Text>
+									}
+								</View>
+							</MyForm>
+					}
+
 				</View>
 			</View>
 			<View className="menu">

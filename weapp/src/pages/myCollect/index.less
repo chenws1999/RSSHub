@@ -12,17 +12,40 @@
             display: flex;
             align-items: center;
             > Image {
+                width: 60px;
+                height: 60px;
                 border-radius: 50%;
             }
-            > Text {
-                color: rgba(0,0,0,.85);
-                font-size: 32px;
-                padding-left: 20px;
+            > .itemInfo {
+                padding-left: 16px;
+                > .name {
+                    @fontSize: 32px;
+                    color: rgba(0,0,0,.85);
+                    font-size: @fontSize;
+                    height: 1.5 * @fontSize;
+                }
+                > .pubDate {
+                    font-size: 28px;
+                    color: rgba(0,0,0,.45);
+                }
             }
+            
         }
         > .right {
-            color: rgba(0,0,0,.25);
-            font-size: 28px;
+            display: flex;
+            align-items: center;
+            > Text {
+                color: rgba(0,0,0,.45);
+                font-size: 28px;
+                padding-right: 10px;
+            }
+            .iconfont {
+                font-size: 42px !important;
+                color: #999;
+            }
+            .icon-star-fill {
+                color: #fadb14;
+            }
         }
     }
     > .content {
@@ -82,7 +105,6 @@
         }
 
         &.longContent {
-            height: 280px;
             display: flex;
             > .desc {
                 font-size: 32px;
@@ -93,7 +115,8 @@
 
                 overflow:hidden;
                 display:-webkit-box;
-                -webkit-line-clamp:2; /*这个数字是设置要显示省略号的行数*/
+                text-overflow: ellipsis;
+                -webkit-line-clamp:6; /*这个数字是设置要显示省略号的行数*/
                 -webkit-box-orient:vertical;
 
             }
@@ -115,9 +138,6 @@
             .iconfont {
                 font-size: 42px !important;
                 color: #999;
-            }
-            .icon-star-fill {
-                color: #fadb14;
             }
             > Button {
                 margin: 0;

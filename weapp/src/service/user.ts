@@ -8,7 +8,7 @@ export async function login (data) {
     })
 } 
 
-export async function getMineInfo (params) {
+export async function getBaseInfo (params) {
     return request('/user/info?' + stringify(params) )
 }
 
@@ -18,10 +18,6 @@ export async function getHomeInfo () {
 
 export async function getMyFeedList (params) {
     return request('/user/myFeedList?' + stringify(params) )
-}
-
-export async function getOverview (params = {}) {
-    return request('/user/overview?' + stringify(params) )
 }
 
 export async function collectItem (data) {
@@ -40,4 +36,12 @@ export async function deleteCollectedItem (data) {
         method: 'POST',
         data 
     } )
+}
+
+
+export async function checkIn (data) {
+    return request('/user/checkIn?', {
+        data,
+        method: 'POST'
+    })
 }

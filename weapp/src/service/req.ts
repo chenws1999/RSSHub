@@ -1,14 +1,16 @@
 import Taro from '@tarojs/taro'
 import qs from 'qs'
 
+import Notify from '../components/vant-weapp/dist/notify/notify'
 
 let baseUrl = ''
 
 if (process.env.NODE_ENV === 'development') {
-   //  baseUrl = 'http://localhost:4000/api'
+    baseUrl = 'http://localhost:4000/api'
 //  baseUrl = 'http://192.168.1.3:4000/api'
-     baseUrl = 'http://192.168.1.4:4000/api'
+    //  baseUrl = 'http://192.168.1.4:4000/api'
 //  baseUrl = 'http://192.168.0.135:4000/api'
+// baseUrl = 'https://weapp.balala.co/api'
 
 } else {
     baseUrl = 'https://weapp.balala.co/api'
@@ -57,6 +59,15 @@ export default function request (url, options = {}) {
         if (resData.code === -2) {
             gotoLoginPage()
         }
+        if (options.method === 'POST') {
+            const color = resData.code ? 'rgb(255, 68, 68)' : '#07c160'
+            const text = resData.msg || (resData.code ? '操作失败' : '操作成功')
+            Notify({
+                text,
+                backgroundColor: color
+            })
+        }
+
         return resData
     })
 }

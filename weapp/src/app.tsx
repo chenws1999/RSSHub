@@ -27,8 +27,8 @@ class App extends Component {
    */
   config: Config = {
     pages: [
-      'pages/index/index',
       'pages/pushline/index',
+      'pages/feed/index',
       'pages/subscribe/index',
       'pages/subscribeAction/index',
       'pages/home/index',
@@ -51,15 +51,15 @@ class App extends Component {
       list: [
         {
           pagePath: "pages/subscribedFeed/index",
-          iconPath: "static/message.png",
-          selectedIconPath: 'static/message2.png',
-          text: "更新"
+          iconPath: "static/22.png",
+          selectedIconPath: 'static/222.png',
+          text: "我的源"
         },
         {
           pagePath: "pages/pushline/index",
-          iconPath: "static/message.png",
-          selectedIconPath: 'static/message2.png',
-          text: "更新"
+          iconPath: "static/streamlist.png",
+          selectedIconPath: 'static/streamlist2.png',
+          text: "动态"
         },
         {
           pagePath: 'pages/subscribe/index',
@@ -75,22 +75,10 @@ class App extends Component {
         },
         {
           pagePath: 'pages/home/index',
-          iconPath: 'static/message.png',
-          selectedIconPath: 'static/message2.png',
-          text: '消息'
+          iconPath: 'static/home.png',
+          selectedIconPath: 'static/home2.png',
+          text: '主页'
         },
-        // {
-        //   pagePath: "pages/home/index",
-        //   iconPath: "static/user.png",
-        //   selectedIconPath: 'static/user2.png',
-        //   text: "我"
-        // }
-        // {
-        //   pagePath: "pages/login/index",
-        //   iconPath: 'static/user.png',
-        //   selectedIconPath: 'static/user2.png',
-        //   text: "管理"
-        // }
     },
   }
   componentDidMount () {

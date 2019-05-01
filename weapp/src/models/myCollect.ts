@@ -16,7 +16,8 @@ const transformCollectItem = (item: MyCollect) => {
     return {
         ...item,
         pubDate: formatTime(pubDate),
-        descLineCount: matched ? matched.length + 1 : 1
+        descLineCount: matched ? matched.length + 1 : 1,
+        collectDate: formatTime(item.createAt)
     }
 }
 
@@ -47,7 +48,7 @@ export default {
                 yield put({
                     type: 'saveData',
                     payload: {
-                        list: list.map(transformCollectItem)
+                        feedItemList: list.map(transformCollectItem)
                     }
                 })
                 Taro.stopPullDownRefresh()
@@ -62,14 +63,13 @@ export default {
             }
             
         },
-        * deleteCollectUserFeedItem ({payload: {data, feedItemId}}, {put, call}) {
+        * deleteCollectUserFeedItem ({payload: {data, itemId}}, {put, call}) {
             const res = yield call(APIS.deleteCollectedItem.bind(null, data))
-            console.log('res', res)
             if (res && res.code === 0) {
                 yield put({
                     type: 'afterCollectAction',
                     payload: {
-                        feedItemId,
+                        itemId,
                     }
                 })
                 return true
@@ -94,12 +94,12 @@ export default {
             }
         },
         afterCollectAction (state, {payload}) {
-            const {feedItemId, userCollectId = null} = payload
+            const {itemId, userCollectId = null} = payload
             const {feedItemList = []} = state
             const findIndex = feedItemList.findIndex(item => {
-                return item._id === feedItemId
+                return item._id === itemId
             })
-            if (findIndex) {
+            if (findIndex > -1) {
                 feedItemList.splice(findIndex, 1)
             }
             return {

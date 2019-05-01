@@ -38,7 +38,8 @@ export default class Index extends Component<LoginProps, LoginState> {
   config: Config = {
     navigationBarTitleText: '首页',
     usingComponents: {
-      'vant-loading': '../../components/vant-weapp/dist/loading/index'
+      'vant-loading': '../../components/vant-weapp/dist/loading/index',
+			'vant-notify': '../../components/vant-weapp/dist/notify/index',
     }
   }
   profileData: EncrypteDataObj
@@ -152,6 +153,7 @@ export default class Index extends Component<LoginProps, LoginState> {
     const { loginPostLoading } = this.props
     return (
       <View className='loginBox'>
+			  <vant-notify id="van-notify" />
         {
           loginStep === LoginSteps.preCheck && <View className="preCheckStepBox">
             <Text>加载中...</Text>

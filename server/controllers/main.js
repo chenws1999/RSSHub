@@ -15,11 +15,18 @@ const settings = require('../config/settings.js')
 const Enums = require('../lib/enums')
 const redis = require('../lib/redis')
 const DecryptWxData = require('../lib/wxbizdatacrypt')
-const { feedService, feedOriginService } = require('./service')
+const { feedService, feedOriginService, userService } = require('./service')
 const { RedisKeys, FeedOriginPriorityTypes, FeedOriginParamTypes } = Enums
 
 const global = {
 	feedOriginTree: {}
+}
+
+function getLeftSecondsOfDay () {
+	const now = Date.now()
+	const todayOut = now % (3600 * 24 * 1000)
+	const todayLeft = (3600 * 16 * 1000) - todayOut
+	return Math.ceil(todayLeft / 1000)
 }
 
 function generateFeedSignatureStr(origin, params = []) {
@@ -539,12 +546,14 @@ exports.getCsrfToken = async (req, res) => {
 }
 
 
-exports.getMineInfo = async (req, res) => {
+exports.getBaseInfo = async (req, res) => {
 	const user = req.user
+	const isCheckIn = await redis.get(Enums.RedisKeys.userCheckStatus(req.user._id))
 
 	res.json({
 		code: 0,
 		user,
+		isCheckIn: !!isCheckIn
 		// _csrf: req.csrfToken()
 	})
 }
@@ -690,40 +699,43 @@ exports.deleteCollectItem = async function (req, res) {
 		code: 0
 	})
 }
-
-const getUserFormId = async (key) => {
-	let formId = null
-	const listStr = await redis.get(key)
-	if (listStr) {
-		const list = JSON.parse(listStr)
-		const findIndex = list.findIndex(obj => obj.expireAt > Date.now())
-		if (findIndex > -1) {
-			formId = list[findIndex].formId
-		}
-		const leftList = findIndex > -1 ? list.slice(findIndex + 1) : ''
-		await redis.set(key, JSON.stringify(leftList))
-	}
-	return formId
-}
-
-const setUserFormId = async (key, formIdObj) => {
-	const listStr = await redis.get(key)
-	const list = JSON.parse(listStr) || []
-	list.push(formIdObj)
-	const expire = (7 * 24 * 60 * 60 - 2 * 60) * 1000
-	await redis.set(key, JSON.stringify(list), 'PX', expire)
+exports.userCheckIn = async function (req, res) {
+	const { formIds } = req.body
+	// if (!formIds) {
+	// 	throw new Error('无效数据')
+	// }
+	// const isCheckIn = await redis.get(Enums.RedisKeys.userCheckStatus(req.user._id))
+	const checkInKey = Enums.RedisKeys.userCheckStatus(req.user._id)
+	await redis.set(checkInKey, 1, 'Ex', getLeftSecondsOfDay())
+	await userService.setUserFormId(req.user._id, formIds)
+	// const {sendTemplate} = require('../lib/wechat')
+	// const flag = await sendTemplate({
+	// 	templateId: settings.templateId,
+	// 	openId: req.user.openId,
+	// 	// openId: 'ovfMO0cZbKbWjDixj2RybEoneLsU',
+	// 	formId,
+	// 	data: {
+	// 		keyword1: {
+	// 			value: 'test'
+	// 		},
+	// 		keyword2: {
+	// 			value: 'test3'
+	// 		}
+	// 	}
+	// })
+	// console.log(flag, 'push')
+	res.json({
+		code: 0
+	})
 }
 
 
 exports.recieveFormId = async function (req, res) {
-	const { formId } = req.body
-	if (!formId) {
+	const { formIds } = req.body
+	if (!formIds) {
 		throw new Error('无效数据')
 	}
-	const redisKey = RedisKeys.userFormIds(req.user._id)
-	const expireAt = Date.now() + (7 * 24 * 60 * 60) * 1000
-	await setUserFormId(redisKey, { formId, expireAt })
-
+	await userService.setUserFormId(formIds)
 	// const {sendTemplate} = require('../lib/wechat')
 	// const flag = await sendTemplate({
 	// 	templateId: settings.templateId,

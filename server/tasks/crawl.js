@@ -347,41 +347,41 @@ async function handleFeedRes(feed, feedRes, snapshot) {
 			let diffItems = []
 			let isPrecise = 0
 
-			if (i.pubDate && i.pubDate !== 'Invalid Date') {
-				// todo 考虑数据重复
-				const feedUpdateTime = new Date(feed.lastUpdate)
-				newItems.sort((a, b) => {
-					return (new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime())
-				})
-				newItems.every(item => {
-					const t1 = new Date(item.pubDate)
-					if (t1 > feedUpdateTime) {
-						diffItems.push(item)
-						return true
-					}
-					return false
-				})
-				console.log('increase type has pubDate',feedUpdateTime, diffItems.length)
-				if (diffItems.length) {
-					time = diffItems[0].pubDate
-					updateCount = diffItems.length
-					isPrecise = 1
-				}
-			} else {
-				const oldItems = feed.lastItems || []
-				diffItems = compareFeedItems(oldItems, newItems)
-				console.log('increase type dont has pubDate: ',  diffItems.length)
-				if (diffItems.length) {
-					time = Date.now()
-					updateCount = diffItems.length
-				}
+			// if (i.pubDate && i.pubDate !== 'Invalid Date') {
+			// 	// todo 考虑数据重复
+			// 	const feedUpdateTime = new Date(feed.lastUpdate)
+			// 	newItems.sort((a, b) => {
+			// 		return (new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime())
+			// 	})
+			// 	newItems.every(item => {
+			// 		const t1 = new Date(item.pubDate)
+			// 		if (t1 > feedUpdateTime) {
+			// 			diffItems.push(item)
+			// 			return true
+			// 		}
+			// 		return false
+			// 	})
+			// 	console.log('increase type has pubDate',feedUpdateTime, diffItems.length)
+			// 	if (diffItems.length) {
+			// 		time = diffItems[0].pubDate
+			// 		updateCount = diffItems.length
+			// 		isPrecise = 1
+			// 	}
+			// } else {
+			const oldItems = feed.lastItems || []
+			diffItems = compareFeedItems(oldItems, newItems)
+			console.log('increase type dont has pubDate: ',  diffItems.length)
+			if (diffItems.length) {
+				time = Date.now()
+				updateCount = diffItems.length
 			}
+			// }
 
 			if (time && !notSaveDiffItems) {
-				try {
-					const feedItems = diffItems.map(item => {
+				for (let item of diffItems) {
+					try {
 						const obj = resolveResDescFeild(item.description)
-						return new FeedItem({
+						const newItem = new FeedItem({
 							feed,
 							snapshot,
 							feedSnapshot: feed._id + snapshot._id,
@@ -392,13 +392,15 @@ async function handleFeedRes(feed, feedRes, snapshot) {
 							...item,
 							...obj,
 						})
-					})
-					createdFeedItems = await FeedItem.create(feedItems)
-				} catch (e) {
-					console.log('save feed items error: ', e.message)
-					// throw e
-					time = null
-					updateCount = 0
+						await newItem.save()
+						createdFeedItems.push(newItem)
+					} catch (e) {
+						console.log('save feed items error: ', e.message)
+						updateCount --
+						if (!updateCount) {
+							time = null
+						}
+					}
 				}
 			}
 		}

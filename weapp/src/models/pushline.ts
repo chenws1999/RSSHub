@@ -26,35 +26,36 @@ export default {
     effects: {
         * fetchUserFeedItemList ({payload: {params, refresh = false}}, {put, call}) {
             const res = yield call(APIS.getPushItemList.bind(null, params))
-            const {list, position} = res
-            yield put({
-                type: 'saveData',
-                payload: {
-                    position,
-                }
-            })
-            if (refresh) {
+            if (res && res.code === 0) {
+                const {list, position} = res
                 yield put({
                     type: 'saveData',
                     payload: {
-                        list: list.map(transformUserFeedItem)
+                        position,
                     }
                 })
-                Taro.stopPullDownRefresh()
-            } else {
-                yield put({
-                    type: 'appendList',
-                    payload: {
-                        key: 'feedItemList',
-                        list: list.map(transformUserFeedItem),
-                    }
-                })
+                if (refresh) {
+                    yield put({
+                        type: 'saveData',
+                        payload: {
+                            feedItemList: list.map(transformUserFeedItem)
+                        }
+                    })
+                    Taro.stopPullDownRefresh()
+                } else {
+                    yield put({
+                        type: 'appendList',
+                        payload: {
+                            key: 'feedItemList',
+                            list: list.map(transformUserFeedItem),
+                        }
+                    })
+                }
             }
             
         },
         * collectUserFeedItem ({payload: {data, feedItemId}}, {put, call}) {
             const res = yield call(APIS.collectItem.bind(null, data))
-            console.log('res', res, res.item._id)
             if (res && res.code === 0) {
                 yield put({
                     type: 'afterCollectAction',

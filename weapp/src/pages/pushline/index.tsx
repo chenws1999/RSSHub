@@ -4,6 +4,7 @@ import { connect } from '@tarojs/redux'
 import bindClass from 'classnames'
 
 import MyIcon from '../../components/Icon/index'
+import MyForm from '../../components/Form/index'
 import utils from '../../utils/utils'
 import { FeedItem, FeedItemContentTypes, UserFeedItem, User } from '../../propTypes'
 import './index.less'
@@ -16,6 +17,7 @@ interface reduxFeedItem extends UserFeedItem {
 interface PushlineProps {
 	_csrf: '',
 	user: User,
+	showCheckInModal: boolean,
 	dispatch: (action: {}) => Promise<any>,
 	feedItemList: reduxFeedItem[],
 	position: string,
@@ -29,7 +31,7 @@ interface PushlineState {
 
 enum DescShowModes { showAll, hidden, clickShowAll }
 
-
+const FormIdCount = 20
 @connect(({ center, loading, pushline }) => ({
 	...center,
 	...pushline,
@@ -42,30 +44,52 @@ export default class Pushline extends Component<PushlineProps, PushlineState> {
 		addGlobalClass: true
 	}
 	config: Config = {
-		navigationBarTitleText: '首页',
+		navigationBarTitleText: '动态',
 		usingComponents: {
-			'vant-loading': '../../components/vant-weapp/dist/loading/index'
+			'vant-loading': '../../components/vant-weapp/dist/loading/index',
+			'vant-notify': '../../components/vant-weapp/dist/notify/index',
+			'vant-dialog': '../../components/vant-weapp/dist/dialog/index'
 		}
 	}
 	pureUpdateFunc: Function
 	pureDidMountFunc: Function
 	pureWillReceivePropsFunc: Function
+	isInit: boolean
+	formIds: string[]
 	constructor(props) {
 		super(props)
 		this.state = {
 			showAllDescItems: []
 		}
-		utils.initIntercepter.call(this)
+		this.formIds = []
 	}
-	componentWillMount() { }
+	componentWillMount() { 
+		// console.log('will unmount')
+		// Taro.hideTabBar()
+		
+	}
 
 	componentDidMount() {
-
-		console.log('inner did mount', this.props._csrf)
-		Taro.showShareMenu()
-		this.fetchFeedItemList()
+		if (!this.props.user) {
+			this.props.dispatch({
+				type: 'center/fetchMineInfo',
+			})
+		} else {
+			this.clearData()
+			this.initFunc()
+		}
+	}
+	componentWillReceiveProps (nextProps) {
+		if (!this.props.user && nextProps.user && !this.isInit) {
+			this.isInit = true
+			this.initFunc()
+		}
 	}
 	componentWillUnmount() {
+		console.log('un mount')
+		this.clearData()
+	}
+	clearData () {
 		this.props.dispatch({
 			type: 'pushline/saveData',
 			payload: {
@@ -73,6 +97,13 @@ export default class Pushline extends Component<PushlineProps, PushlineState> {
 				position: null,
 			}
 		})
+
+	}
+	initFunc () {
+		console.log('init')
+		Taro.showTabBar()
+		Taro.showShareMenu()
+		this.fetchFeedItemList()
 	}
 	showListItemDescAll(key, key2) {
 		console.log(key, key2)
@@ -87,7 +118,7 @@ export default class Pushline extends Component<PushlineProps, PushlineState> {
 	}
 	fetchFeedItemList(position = null, refresh = false) {
 		const { dispatch } = this.props
-		console.log('inner ')
+		console.log('inner  fetch')
 		const res = dispatch({
 			type: 'pushline/fetchUserFeedItemList',
 			payload: {
@@ -135,6 +166,8 @@ export default class Pushline extends Component<PushlineProps, PushlineState> {
 	handleCollectAction(itemIndex: number) {
 		const { feedItemList, dispatch, collectActionLoading } = this.props
 		const item = feedItemList[itemIndex]
+		console.log('inner action', collectActionLoading)
+
 		if (collectActionLoading) {
 			// todo toast
 			return
@@ -173,7 +206,7 @@ export default class Pushline extends Component<PushlineProps, PushlineState> {
 			url: `/pages/feed/index?id=${feedId}`
 		})
 	}
-	async handleCopyItemLink (linkValue) {
+	async handleCopyItemLink(linkValue) {
 		await Taro.setClipboardData({
 			data: linkValue
 		})
@@ -183,14 +216,47 @@ export default class Pushline extends Component<PushlineProps, PushlineState> {
 			duration: 1000
 		})
 	}
+	gotoSubscribePage () {
+		Taro.switchTab({
+			url: '/pages/subscribe/index'
+		})
+	}
+	handleGetFormId (id: string) {
+		this.formIds.push(id)
+		if (this.formIds.length === FormIdCount) {
+			console.log('submit')
+			this.props.dispatch({
+				type: 'center/checkIn',
+				payload: {
+					data: {
+						formIds: this.formIds,
+					}
+				}
+			})
+		}
+	}
 	render() {
-		const { feedItemList, itemListLoading, position } = this.props
+		const { feedItemList, itemListLoading, position, showCheckInModal } = this.props
 		const { showAllDescItems } = this.state
 		console.log(feedItemList, 'render pushline')
+
 		return <View>
+			<vant-notify id="van-notify" />
+			<vant-dialog show={showCheckInModal}  use-slot={true} show-cancel-button={false} show-confirm-button={false}>
+				<View className="checkinBox">
+					<View className="text">签到解锁更多功能哦！</View>
+					<View className="checkInBtn">
+						<MyForm num={FormIdCount} onGetFormId={this.handleGetFormId.bind(this)}>
+							<View className="btnArea">
+								签到
+							</View>
+						</MyForm>
+					</View>
+				</View>
+			</vant-dialog>
 			{
 				feedItemList.map((item, itemIndex) => {
-					const { contentType, desc, title, imgs, link } = item.feedItem
+					const { contentType, desc, title, imgs = [], link } = item.feedItem
 					const isShortContent = contentType === FeedItemContentTypes.short
 					const descShowMode = item.descLineCount <= 4 ? DescShowModes.showAll : (
 						showAllDescItems.includes(item._id) ? DescShowModes.clickShowAll : DescShowModes.hidden
@@ -198,13 +264,24 @@ export default class Pushline extends Component<PushlineProps, PushlineState> {
 					const descStr = descShowMode === DescShowModes.hidden ? desc.split('\n').slice(0, 4).join('\n') : desc
 					const imgBoxClassName = imgs && bindClass('imgBox', imgs.length === 1 ? 'single' : 'multi')
 
+					const longContentImgUrl = utils.getUrl(!isShortContent && imgs && imgs[0])
+					const shortCotentImgs = item.feedItem.imgs 
+					const shortImageNode = shortCotentImgs.map(src => <View key={src} className="itemBox">
+							<View className="placeholder"></View>
+							<Image mode="aspectFill"
+								className="item"
+								onClick={this.handlePreviewItemImgs.bind(this, itemIndex)}
+								src={utils.getUrl(src)} lazyLoad={true}
+							/>
+						</View>)
+					
 					return <View className="itemCard" key={item._id}>
 						<View className="header">
 							<View className="left">
 								{/* <Text onClick={this.gotoFeedPage.bind(this)} > */}
-								<Image onClick={this.gotoFeedPage.bind(this, item.feed)} src="https://ss1.baidu.com/-4o3dSag_xI4khGko9WTAnF6hhy/image/h%3D300/sign=2e1591f5382ac65c78056073cbf3b21d/3b292df5e0fe9925a8a324c539a85edf8cb171f3.jpg" style={{ width: '30px', height: '30px' }} />
+								<Image onClick={this.gotoFeedPage.bind(this, item.feed)} src={utils.getUrl(item.feedIcon)} lazyLoad={true} style={{ width: '30px', height: '30px' }} />
 								{/* </Text> */}
-								<Text>{item.feedName || '测试'}</Text>
+								<Text>{item.feedName}</Text>
 							</View>
 							<View className="right">{item.pubDate}</View>
 						</View>
@@ -229,16 +306,7 @@ export default class Pushline extends Component<PushlineProps, PushlineState> {
 										imgs && imgs.length && <View
 											className={imgBoxClassName}
 										>
-											{
-												imgs.map(src => <View key={src} className="itemBox">
-													<View className="placeholder"></View>
-													<Image mode="aspectFill"
-														className="item"
-														onClick={this.handlePreviewItemImgs.bind(this, itemIndex)}
-														src={src} lazyLoad={true}
-													/>
-												</View>)
-											}
+											{shortImageNode}
 										</View>
 									}
 
@@ -247,7 +315,7 @@ export default class Pushline extends Component<PushlineProps, PushlineState> {
 									<Text className="desc">{desc}</Text>
 									{
 										imgs && imgs.length &&
-										<Image src={imgs[0]} mode="aspectFill" className="img" />
+										<Image src={longContentImgUrl} mode="aspectFill" className="img" lazyLoad={true}/>
 									}
 								</View>
 						}
@@ -273,7 +341,12 @@ export default class Pushline extends Component<PushlineProps, PushlineState> {
 				</View>
 			}
 			{
-				!itemListLoading && !position && <View className="nomore">没有更多了....</View>
+				!itemListLoading && !position && (
+					feedItemList.length ? <View className="nomore">没有更多了....</View> :
+						<View className="noData" onClick={this.gotoSubscribePage.bind(this)}>
+							<Text>您还没有订阅源哦!</Text> <Text>去订阅~</Text>
+						</View>
+				)
 			}
 		</View>
 	}

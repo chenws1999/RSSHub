@@ -82,7 +82,6 @@
         }
 
         &.longContent {
-            height: 280px;
             display: flex;
             > .desc {
                 font-size: 32px;
@@ -93,7 +92,8 @@
 
                 overflow:hidden;
                 display:-webkit-box;
-                -webkit-line-clamp:2; /*这个数字是设置要显示省略号的行数*/
+                text-overflow: ellipsis;
+                -webkit-line-clamp:6; /*这个数字是设置要显示省略号的行数*/
                 -webkit-box-orient:vertical;
 
             }
@@ -150,4 +150,39 @@
     text-align: center;
     font-size: 28px;
     color: #999;
+}
+
+.noData {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 100px;
+    color: #999;
+    font-size: 30px;
+    > Text:last-child {
+        padding-left: 10px;
+        color: #1989fa;
+    }
+}
+
+.checkinBox {
+    padding: 20px;
+    > .text {
+        text-align: center;
+        font-size: 32px;
+        color: rgba(0,0,0,.85);
+        padding-bottom: 20px;
+    }
+    > .checkInBtn {
+        display: flex;
+        justify-content: center;
+        .btnArea {
+            width: 300px;
+            line-height: 70px;
+            text-align: center;
+            background-color: #1989fa;
+            border-radius: 10px;
+            color: white;
+        }
+    }
 }

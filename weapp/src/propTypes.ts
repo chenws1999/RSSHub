@@ -143,7 +143,10 @@ export interface MyCollect {
     createAt: string,
     updateAt: string,
     user: User,
-	feedItemId: FeedItem,
+    feedItemId: FeedItem,
+    feedOriginType: string, // todo enum
+	feedIcon: string, //头像地址
+	feedName: string,
 	userFeedItem: UserFeedItem
 }
 export interface UserFeedItem {

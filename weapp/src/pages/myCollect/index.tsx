@@ -11,6 +11,7 @@ import './index.less'
 interface reduxFeedItem extends UserFeedItem {
 	feedItemId: FeedItem,
 	pubDate: string,
+	collectDate: string,
 	descLineCount: number
 }
 
@@ -35,7 +36,7 @@ enum DescShowModes { showAll, hidden, clickShowAll }
 @connect(({ center, loading, myCollect }) => ({
 	...center,
 	...myCollect,
-	itemListLoading: loading.effects['myCollect/fetchUserFeedItemList'],
+	itemListLoading: loading.effects['myCollect/fetchFeedItemList'],
 	collectActionLoading: loading.effects['myCollect/deleteCollectUserFeedItem' || 'myCollect/collectUserFeedItem']
 }), null)
 export default class Pushline extends Component<MyCollectProps, MyCollectState> {
@@ -46,7 +47,8 @@ export default class Pushline extends Component<MyCollectProps, MyCollectState> 
 	config: Config = {
 		navigationBarTitleText: '我的收藏',
 		usingComponents: {
-			'vant-loading': '../../components/vant-weapp/dist/loading/index'
+			'vant-loading': '../../components/vant-weapp/dist/loading/index',
+			'vant-notify': '../../components/vant-weapp/dist/notify/index',
 		}
 	}
 	pureUpdateFunc: Function
@@ -59,15 +61,18 @@ export default class Pushline extends Component<MyCollectProps, MyCollectState> 
 		}
 		utils.initIntercepter.call(this)
 	}
-	componentWillMount() { }
-
-	componentDidMount() {
-
-		console.log('inner did mount', this.props._csrf)
+	componentWillMount() {
+		this.clearReduxData()
 		Taro.showShareMenu()
 		this.fetchFeedItemList()
 	}
+
+	componentDidMount() {
+	}
 	componentWillUnmount() {
+		this.clearReduxData()
+	}
+	clearReduxData () {
 		this.props.dispatch({
 			type: 'myCollect/saveData',
 			payload: {
@@ -129,7 +134,7 @@ export default class Pushline extends Component<MyCollectProps, MyCollectState> 
 	handlePreviewItemImgs(itemIndex: number) {
 		const { feedItemList } = this.props
 		const item = feedItemList[itemIndex]
-		const { imgs = [] } = item.feedItem
+		const { imgs = [] } = item.feedItemId
 		Taro.previewImage({
 			current: imgs[0],
 			urls: imgs
@@ -142,33 +147,15 @@ export default class Pushline extends Component<MyCollectProps, MyCollectState> 
 			// todo toast
 			return
 		}
-		const isCollected = !!item.userCollectId
-		if (isCollected) {
-			dispatch({
-				type: 'myCollect/deleteCollectUserFeedItem',
-				payload: {
-					data: {
-						userCollectId: item.userCollectId
-					},
-					feedItemId: item._id
-				}
-			})
-		} else {
-			dispatch({
-				type: 'myCollect/collectUserFeedItem',
-				payload: {
-					data: {
-						userFeedItemId: item._id,
-						feedItemId: item.feedItem._id
-					},
-					feedItemId: item._id
-				}
-			}).then(isUpdate => {
-				if (isUpdate) {
-					this.setState({})
-				}
-			})
-		}
+		dispatch({
+			type: 'myCollect/deleteCollectUserFeedItem',
+			payload: {
+				data: {
+					userCollectId: item._id
+				},
+				itemId: item._id
+			}
+		})
 
 	}
 	gotoFeedPage(feedId) {
@@ -176,7 +163,7 @@ export default class Pushline extends Component<MyCollectProps, MyCollectState> 
 			url: `/pages/feed/index?id=${feedId}`
 		})
 	}
-	async handleCopyItemLink (linkValue) {
+	async handleCopyItemLink(linkValue) {
 		await Taro.setClipboardData({
 			data: linkValue
 		})
@@ -191,9 +178,10 @@ export default class Pushline extends Component<MyCollectProps, MyCollectState> 
 		const { showAllDescItems } = this.state
 		console.log(feedItemList, 'render pushline')
 		return <View>
+			<vant-notify id="van-notify" />
 			{
 				feedItemList.map((item, itemIndex) => {
-					const { contentType, desc, title, imgs, link, } = item.feedItemId
+					const { contentType, desc, title, imgs, link, feed: feedId } = item.feedItemId
 					const isShortContent = contentType === FeedItemContentTypes.short
 					const descShowMode = item.descLineCount <= 4 ? DescShowModes.showAll : (
 						showAllDescItems.includes(item._id) ? DescShowModes.clickShowAll : DescShowModes.hidden
@@ -201,15 +189,29 @@ export default class Pushline extends Component<MyCollectProps, MyCollectState> 
 					const descStr = descShowMode === DescShowModes.hidden ? desc.split('\n').slice(0, 4).join('\n') : desc
 					const imgBoxClassName = imgs && bindClass('imgBox', imgs.length === 1 ? 'single' : 'multi')
 
+					console.log(imgs, 'collect imgs', imgs[0])
+					const longContentImgUrl = utils.getUrl(!isShortContent && imgs && imgs[0])
+					const shortContentImgNode = imgs.map(src => <View key={src} className="itemBox">
+						<View className="placeholder"></View>
+						<Image mode="aspectFill"
+							className="item"
+							onClick={this.handlePreviewItemImgs.bind(this, itemIndex)}
+							src={utils.getUrl(src)} lazyLoad={true}
+						/>
+					</View>)
 					return <View className="itemCard" key={item._id}>
 						<View className="header">
 							<View className="left">
-								{/* <Text onClick={this.gotoFeedPage.bind(this)} > */}
-								<Image onClick={this.gotoFeedPage.bind(this, item.feed)} src="https://ss1.baidu.com/-4o3dSag_xI4khGko9WTAnF6hhy/image/h%3D300/sign=2e1591f5382ac65c78056073cbf3b21d/3b292df5e0fe9925a8a324c539a85edf8cb171f3.jpg" style={{ width: '30px', height: '30px' }} />
-								{/* </Text> */}
-								<Text>{item.feedName || '测试'}</Text>
+								<Image onClick={this.gotoFeedPage.bind(this, feedId)} src={utils.getUrl(item.feedIcon)} lazyLoad={true} />
+								<View className="itemInfo">
+									<View className="name">{item.feedName}</View>
+									<View className="pubDate">{item.pubDate}</View>
+								</View>
 							</View>
-							<View className="right">{item.pubDate}</View>
+							<View className="right">
+								<Text>收藏于: {item.collectDate}</Text>
+								<MyIcon type="star-fill" onClick={this.handleCollectAction.bind(this, itemIndex)} />
+							</View>
 						</View>
 						{
 							isShortContent ?
@@ -233,14 +235,7 @@ export default class Pushline extends Component<MyCollectProps, MyCollectState> 
 											className={imgBoxClassName}
 										>
 											{
-												imgs.map(src => <View key={src} className="itemBox">
-													<View className="placeholder"></View>
-													<Image mode="aspectFill"
-														className="item"
-														onClick={this.handlePreviewItemImgs.bind(this, itemIndex)}
-														src={src} lazyLoad={true}
-													/>
-												</View>)
+												shortContentImgNode
 											}
 										</View>
 									}
@@ -250,7 +245,7 @@ export default class Pushline extends Component<MyCollectProps, MyCollectState> 
 									<Text className="desc">{desc}</Text>
 									{
 										imgs && imgs.length &&
-										<Image src={imgs[0]} mode="aspectFill" className="img" />
+										<Image src={longContentImgUrl} mode="aspectFill" className="img" lazyLoad={true} />
 									}
 								</View>
 						}
@@ -259,13 +254,8 @@ export default class Pushline extends Component<MyCollectProps, MyCollectState> 
 								<MyIcon type="link" onClick={this.handleCopyItemLink.bind(this, link)} />
 							</View>
 							<View>
-								<MyIcon type={item.userCollectId ? 'star-fill' : 'star'} onClick={this.handleCollectAction.bind(this, itemIndex)} />
-							</View>
-							<View>
 								<Button openType="share" data-itemIndex={itemIndex}><MyIcon type="share" /></Button>
 							</View>
-							{/* <MyIcon type={item.userCollectId ? 'star-fill' : 'star'} onClick={this.handleCollectAction.bind(this, itemIndex)}/>
-							<Button openType="share" data-itemIndex={itemIndex}><MyIcon type="share"/></Button> */}
 						</View>
 					</View>
 				})

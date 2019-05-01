@@ -24,11 +24,12 @@ apiRouter.get('/feed/precheck', catchError(mainCtrl.preCheckSubscribe))
 
 apiRouter.use(mainCtrl.isLogin)
 apiRouter.get('/user/myfeedList', catchError(mainCtrl.getMyFeedList))
-apiRouter.get('/user/info', catchError(mainCtrl.getMineInfo))
+apiRouter.get('/user/info', catchError(mainCtrl.getBaseInfo))
 apiRouter.get('/user/homeInfo', catchError(mainCtrl.getHomeInfo))
 apiRouter.get('/user/collect/list', catchError(mainCtrl.getMyCollectList))
 apiRouter.post('/user/collect', catchError(mainCtrl.collectFeedItem))
 apiRouter.post('/user/deleteCollect', catchError(mainCtrl.deleteCollectItem))
+apiRouter.post('/user/checkIn', catchError(mainCtrl.userCheckIn))
 
 
 apiRouter.get('/feed/origin/item', catchError(mainCtrl.getFeedOriginItem))

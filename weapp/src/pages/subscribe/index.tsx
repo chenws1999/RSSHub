@@ -4,6 +4,7 @@ import { connect } from '@tarojs/redux'
 import bindClass from 'classnames'
 import pathToRegExp from 'path-to-regexp'
 
+import utils from '../../utils/utils'
 import MyIcon from '../../components/Icon/index'
 import { FeedItem, UserFeedItem, FeedOrigin } from '../../propTypes'
 import './index.less'
@@ -60,9 +61,10 @@ const test = [
 export default class SubscribeListPage extends Component<SubscribeProps, SubscribeState> {
 
 	config: Config = {
-		navigationBarTitleText: '首页',
+		navigationBarTitleText: '可订阅源',
 		usingComponents: {
 			'vant-loading': '../../components/vant-weapp/dist/loading/index',
+			'vant-notify': '../../components/vant-weapp/dist/notify/index',
 			// 'vant-tab': '../../components/vant-weapp/dist/tab/index',
 			// 'vant-tabs': '../../components/vant-weapp/dist/tabs/index',
 			// 'vant-field': '../../components/vant-weapp/dist/field/index'
@@ -73,16 +75,20 @@ export default class SubscribeListPage extends Component<SubscribeProps, Subscri
 		this.state = {
 		}
 	}
-	componentWillMount() { }
+	componentWillMount() {
+		this.clearReduxData()
+		Taro.showShareMenu()
+		this.fetchFeedOriginList()
+	 }
 
 	componentDidMount() {
 		console.log('inner show')
-		Taro.showShareMenu()
-		// Taro.startPullDownRefresh()
-		this.fetchFeedOriginList()
-		// this.readAllPushRecord()
+	
 	}
 	componentWillUnmount() {
+		this.clearReduxData()
+	}
+	clearReduxData () {
 		this.props.dispatch({
 			type: 'subscribe/saveData',
 			payload: {
@@ -189,6 +195,7 @@ export default class SubscribeListPage extends Component<SubscribeProps, Subscri
 		console.log('render')
 
 		return <View>
+			<vant-notify id="van-notify" />
 			<View className="feedOringListBox">
 				<View className="header">源列表</View>
 				{
@@ -196,7 +203,7 @@ export default class SubscribeListPage extends Component<SubscribeProps, Subscri
 						const isSubscribed = !!item.userFeedId
 						return <View key={item._id} className="item">
 							<View className="icon">
-								<Image src={item.icon} />
+								<Image src={utils.getUrl(item.icon)}  lazyLoad={true} />
 							</View>
 							<View className="right">
 								<View className="name">{item.name}</View>

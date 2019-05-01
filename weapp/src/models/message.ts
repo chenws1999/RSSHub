@@ -2,9 +2,12 @@ import APIS from '../service/index'
 import {formatTime} from './util'
 import {UserSnapshot} from '../propTypes'
 
+import Taro from '@tarojs/taro'
+
 const initState = {
     messageList: [],
-    position: null
+    position: null,
+    isRefreshListLoading: false,
 }
 
 const transformMessageItem = (item: UserSnapshot) => {
@@ -20,8 +23,14 @@ export default {
     namespace: 'message',
     state: initState,
     effects: {
-        * fetchMessageList ({payload: {params}}, {put, call}) {
+        * fetchMessageList ({payload: {params, refresh = false}}, {put, call}) {
             const res = yield call(APIS.getMessageList.bind(null, params))
+            yield put({
+                type: 'saveData',
+                payload: {
+                    isRefreshListLoading: refresh
+                }
+            })
             if (res && res.code === 0) {
                 const {list, position} = res
                 yield put({
@@ -30,17 +39,28 @@ export default {
                         position
                     }
                 })
-                yield put({
-                    type: 'appendList',
-                    payload: {
-                        key: 'messageList',
-                        list: list.map(transformMessageItem),
-                    }
-                })
+                if (refresh) {
+                    yield put({
+                        type: 'saveData',
+                        payload: {
+                            messageList: list.map(transformMessageItem)
+                        }
+                    })
+                    Taro.stopPullDownRefresh()
+                } else {
+                    yield put({
+                        type: 'appendList',
+                        payload: {
+                            key: 'messageList',
+                            list: list.map(transformMessageItem),
+                        }
+                    })
+                }
+               
             } else {
                 // todo
             }
-           
+
         },
        
     },

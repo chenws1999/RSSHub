@@ -83,7 +83,26 @@
             }
     
             &.longContent {
+                display: flex;
+                > .desc {
+                    font-size: 32px;
+                    color: rgba(0,0,0,.85);
+                    flex-grow: 1;
+                    margin-right: 16px;
+                    text-overflow:ellipsis;
     
+                    overflow:hidden;
+                    display:-webkit-box;
+                    text-overflow: ellipsis;
+                    -webkit-line-clamp:6; /*这个数字是设置要显示省略号的行数*/
+                    -webkit-box-orient:vertical;
+    
+                }
+                > .img {
+                    flex-shrink: 0;
+                    width: 280px;
+                    height: auto;
+                }
             }
            
         }
@@ -148,6 +167,7 @@
             height: 180px;
             border-radius: 50%;
             overflow: hidden;
+            background-color: white;
             > Image {
                 width: 100%;
                 height: 100%;

@@ -7,6 +7,18 @@
             color: #999;
         }
     }
+    > .noData {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 100px;
+        color: #999;
+        font-size: 30px;
+        > Text:last-child {
+            padding-left: 10px;
+            color: #1989fa;
+        }
+    }
     > .listBox {
         > .itemCard {
             background-color: white;
@@ -59,14 +71,16 @@
                             overflow: hidden; 
                         }
                         > Text {
-                            padding-left: 16px;
+                            padding: 0 10px 0 16px;
                             color: rgba(0, 0, 0, 0.8);
+                            line-height: 1.2;
                         }
                     }
                     >.delete {
+                        flex-shrink: 0;
                         > Button {
                             border-radius: 5px;
-                            font-size: 32px;
+                            font-size: 30px;
                             line-height: 2;
                             padding: 0 12px;
                             background-color: #1989fa;

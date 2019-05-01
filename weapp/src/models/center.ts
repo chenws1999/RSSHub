@@ -5,6 +5,8 @@ import {transformPushRecord, transformUserFeed} from './util'
 const initState = {
     _csrf: '',
     user: null,
+    isCheckIn: false,
+    showCheckInModal: false,
     feedList: [],
     unreadPushCount: 0,
     newlyPushRecord: null,
@@ -15,15 +17,15 @@ export default {
     state: initState,
     effects: {
         * fetchMineInfo (_, {put, call}) {
-            const res = yield call(APIS.getMineInfo)
+            const res = yield call(APIS.getBaseInfo)
             if (res.code !== 0) {
                 return
             }
             yield put({
                 type: 'saveData',
                 payload: {
-                    // _csrf: res._csrf,
-                    // profile: res.profile,
+                    isCheckIn: res.isCheckIn,
+                    showCheckInModal: !res.isCheckIn,
                     user: res.user,
                 }
             })
@@ -55,7 +57,25 @@ export default {
                 })
             }
         },
-       
+        * checkIn ({payload: {data}}, {put, call}) {
+            console.log('inner checkin')
+            const res = yield call(APIS.checkIn.bind(null, data))
+            if (res && res.code === 0) {
+                yield put({
+                    type: 'saveData',
+                    payload: {
+                        isCheckIn: true,
+                        showCheckInModal: false,
+                    }
+                })
+            }
+            yield put({
+                type: 'saveData',
+                payload: {
+                    showCheckInModal: false,
+                }
+            })
+        },
     },
     reducers: {
         saveData (state, {payload}) {

@@ -1,5 +1,5 @@
 import APIS from '../service/index'
-import { formatTime } from './util'
+import { formatTime, getUserFeedStatus } from './util'
 import { UserFeed, UserFeedStatus, FeedFetchStatus } from '../propTypes'
 
 import Taro from '@tarojs/taro'
@@ -19,21 +19,10 @@ const UserFeedStatusToLabel = {
 
 const tranformUserFeedObj = (item: UserFeed) => {
     const { feed } = item
-    let status = UserFeedStatus.normal
-    if (item.stop) {
-        status = UserFeedStatus.stop
-    } else if (feed.fetchStatus === FeedFetchStatus.new) {
-        status = UserFeedStatus.init
-    } else if (feed.fetchStatus === FeedFetchStatus.initFailed) {
-        status = UserFeedStatus.initFailed
-    } else if (feed.fetchStatus === FeedFetchStatus.init) {
-        status = UserFeedStatus.success
-    } else if (feed.fetchStatus === FeedFetchStatus.normal) {
-        status = UserFeedStatus.normal
-    }
+    const status = getUserFeedStatus(item)
 
-    const lastUpdate = [UserFeedStatus.success, UserFeedStatus.normal].includes(status) ? formatTime(feed.lastUpdate) : '暂无'
-    const lastUpdateCount = [UserFeedStatus.success, UserFeedStatus.normal].includes(status) ? feed.lastUpdateCount : '暂无'
+    const lastUpdate = [UserFeedStatus.normal].includes(status) ? formatTime(feed.lastUpdate) : '暂无'
+    const lastUpdateCount = [UserFeedStatus.normal].includes(status) ? feed.lastUpdateCount : '暂无'
     return {
         ...item,
         createAt: formatTime(item.createAt),
@@ -68,6 +57,7 @@ export default {
             } else {
                 // todo
             }
+            Taro.stopPullDownRefresh()
         },
         * unSubscribeFeed({ payload: { data, userFeedId } }, { put, call }) {
             const res = yield call(APIS.unsubscribeFeed.bind(null, data))

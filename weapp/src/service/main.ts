@@ -37,7 +37,7 @@ export async function getPushItemList (params) {
 }
 
 export async function getMessageList (params) {
-    return request('/push/List?' + stringify(params) )
+    return request('/push/messageList?' + stringify(params) )
 }
 
 

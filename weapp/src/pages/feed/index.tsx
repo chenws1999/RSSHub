@@ -3,7 +3,7 @@ import { View, Text, RichText, Image, Button } from '@tarojs/components'
 import { connect } from '@tarojs/redux'
 import bindClass from 'classnames'
 
-import utils from '../../utils/utils'
+import utils from '@utils'
 import MyIcon from '../../components/Icon/index'
 import { FeedItem, FeedItemContentTypes, UserFeedItem, Feed} from '../../propTypes'
 import './index.less'
@@ -46,9 +46,11 @@ export default class FeedItemListPage extends Component<FeedPageProps, FeedPageS
 		addGlobalClass: true
 	}
 	config: Config = {
-		navigationBarTitleText: '已订阅',
+		navigationBarTitleText: '源动态',
 		usingComponents: {
-			'vant-loading': '../../components/vant-weapp/dist/loading/index'
+			'vant-loading': '../../components/vant-weapp/dist/loading/index',
+			'vant-notify': '../../components/vant-weapp/dist/notify/index',
+			'vant-dialog': '../../components/vant-weapp/dist/dialog/index'
 		}
 	}
 	feedId: string
@@ -64,16 +66,24 @@ export default class FeedItemListPage extends Component<FeedPageProps, FeedPageS
 		utils.initIntercepter.call(this)
 
 	}
-	componentWillMount() { }
-
-	componentDidMount() {
-		console.log('inner show')
+	componentWillMount() {
+		this.clearReduxData()
 		Taro.showShareMenu()
 		// Taro.startPullDownRefresh()
 		this.fetchFeedItemList()
+	 }
+
+	componentDidMount() {
+		console.log('inner show')
+		
 		// this.readAllPushRecord()
 	}
 	componentWillUnmount() {
+		console.log('feed unmount')
+		this.clearReduxData()
+		
+	}
+	clearReduxData () {
 		this.props.dispatch({
 			type: 'feed/saveData',
 			payload: {
@@ -186,13 +196,13 @@ export default class FeedItemListPage extends Component<FeedPageProps, FeedPageS
 		})
 	}
 	render() {
-		const { feedItemList, itemListLoading, position, feedInfo } = this.props
+		const { feedItemList = [], itemListLoading, position, feedInfo } = this.props
 		const { showAllDescItems } = this.state
 		console.log(feedItemList, 'render')
 		const header = <View className="feedHeaderBox">
 				<View className="bgColorCard" style={{backgroundColor: this.bgColor}}>
 					<View className="iconCard">
-						<Image mode="aspectFill" src={'https://img.miidii.tech/sharecuts/avatar/PwZnZAOzdR-1541573333437.png!80x80webp'}/>
+						<Image mode="aspectFill" src={utils.getUrl(feedInfo && feedInfo.icon)} lazyLoad={true}/>
 					</View>
 				</View>
 				<View className="contentBox">
@@ -211,7 +221,7 @@ export default class FeedItemListPage extends Component<FeedPageProps, FeedPageS
 						</View>
 						<View className="content">
 								<Text>#最近更新于{' ' + feedInfo.lastUpdate}</Text>
-								<Text>#最近更新数{' ' + feedInfo.lastUpdateCount}条</Text>
+								<Text>#最近更新数{' ' + feedInfo.lastUpdateCount}</Text>
 						</View>
 				</View>
 		</View>
@@ -225,48 +235,60 @@ export default class FeedItemListPage extends Component<FeedPageProps, FeedPageS
 					)
 					const descStr = descShowMode === DescShowModes.hidden ? desc.split('\n').slice(0, 4).join('\n') : desc
 					const imgBoxClassName = imgs && bindClass('imgBox', imgs.length === 1 ? 'single' : 'multi')
-
+					
+					const longContentImgUrl = utils.getUrl(!isShortContent && imgs && imgs[0])
+					const shortImageNode = imgs.map(src => <View key={src} className="itemBox">
+							<View className="placeholder"></View>
+							<Image mode="aspectFill"
+								className="item"
+								onClick={this.handlePreviewItemImgs.bind(this, itemIndex)}
+								src={utils.getUrl(src)} lazyLoad={true}
+							/>
+						</View>)
 					return <View className="itemCard" key={item._id}>
 						<View className="header">
 							<View className="left">
-									<Image  src="https://ss1.baidu.com/-4o3dSag_xI4khGko9WTAnF6hhy/image/h%3D300/sign=2e1591f5382ac65c78056073cbf3b21d/3b292df5e0fe9925a8a324c539a85edf8cb171f3.jpg" style={{ width: '30px', height: '30px' }} />
-								<Text>{item.feedName || '测试'}</Text>
+									<Image  src={utils.getUrl(item.feedIcon)} style={{ width: '30px', height: '30px' }} lazyLoad={true}/>
+								<Text>{item.feedName}</Text>
 							</View>
 							<View className="right">{item.pubDate}</View>
 						</View>
-						<View className={bindClass("content", isShortContent ? 'shortContent' : 'longContent')}>
-							<View className="textBox">
-								<View className="title">{title}</View>
-								<View className="desc">
+						{
+							isShortContent ?
+								<View className="content shortContent">
+									<View className="textBox">
+										<View className="title">{title}</View>
+										<View className="desc">
+											{
+												<Text>{descStr}</Text>
+											}
+											{
+												descShowMode === DescShowModes.hidden && <View className="btn" onClick={this.showListItemDescAll.bind(this, item._id)}>查看全部</View>
+											}
+											{
+												descShowMode === DescShowModes.clickShowAll && <View className="btn" onClick={this.hideListItemDescAll.bind(this, item._id)}>收起全部</View>
+											}
+										</View>
+									</View>
 									{
-										<Text>{descStr}</Text>
+										imgs && imgs.length && <View
+											className={imgBoxClassName}
+										>
+											{
+												shortImageNode
+											}
+										</View>
 									}
-									{
-										descShowMode === DescShowModes.hidden && <View className="btn" onClick={this.showListItemDescAll.bind(this, item._id)}>查看全部</View>
-									}
-									{
-										descShowMode === DescShowModes.clickShowAll && <View className="btn" onClick={this.hideListItemDescAll.bind(this, item._id)}>收起全部</View>
-									}
-								</View>
-							</View>
-							{
-								imgs && imgs.length && <View
-									className={imgBoxClassName}
-								>
-									{
-										imgs.map(src => <View key={src} className="itemBox">
-											<View className="placeholder"></View>
-											<Image mode="aspectFill"
-												className="item"
-												onClick={this.handlePreviewItemImgs.bind(this, itemIndex)}
-												src={src} lazyLoad={true}
-											/>
-										</View>)
-									}
-								</View>
-							}
 
-						</View>
+								</View> :
+								<View className="content longContent">
+									<Text className="desc">{desc}</Text>
+									{
+										imgs && imgs.length &&
+										<Image src={longContentImgUrl} mode="aspectFill" className="img" lazyLoad={true}/>
+									}
+								</View>
+						}
 						<View className="footer">
 							<View>
 								<MyIcon type="link" onClick={this.handleCopyItemLink.bind(this, link)}/>
@@ -294,6 +316,8 @@ export default class FeedItemListPage extends Component<FeedPageProps, FeedPageS
 			}
 		</View>
 		return <View>
+			<vant-dialog id="van-dialog"/>
+			<vant-notify id="van-notify" />
 			{header}
 			{listNode}
 		</View>	

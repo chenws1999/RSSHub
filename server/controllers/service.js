@@ -9,6 +9,36 @@ const UserSnapshot = require('../models/UserSnapshot')
 const UserFeedItem = require('../models/UserFeedItem.js')
 
 module.exports.userService = {
+	getUserFormId: async (uid) => {
+		const key = Enums.RedisKeys.userFormIds(uid)
+
+		let formId = null
+		const listStr = await redis.get(key)
+		if (listStr) {
+			const list = JSON.parse(listStr)
+			const findIndex = list.findIndex(obj => obj.expireAt > Date.now())
+			if (findIndex > -1) {
+				formId = list[findIndex].formId
+			}
+			const leftList = findIndex > -1 ? list.slice(findIndex + 1) : ''
+			await redis.set(key, JSON.stringify(leftList))
+		}
+		return formId
+	},
+	setUserFormId: async (uid, formIds) => {
+		const key = Enums.RedisKeys.userFormIds(uid)
+		const listStr = await redis.get(key)
+		const list = JSON.parse(listStr) || []
+		for (let formId of formIds) {
+			const expireAt = Date.now() + (7 * 24 * 60 * 60) * 1000
+			list.push({
+				formId,
+				expireAt
+			})
+		}
+		const expire = (7 * 24 * 60 * 60 - 2 * 60) * 1000
+		await redis.set(key, JSON.stringify(list), 'PX', expire)
+	},
 	getUserCollections: async function (uid) {
 		const redisKey = Enums.RedisKeys.userCollections(uid.toString())
 		const cache = JSON.parse(await redis.get(redisKey))

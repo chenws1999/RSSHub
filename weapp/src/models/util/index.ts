@@ -2,6 +2,7 @@ import DateFormat from 'dateformat'
 import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn'
 import relativeTime from 'dayjs/plugin/relativeTime'
+import {UserFeedStatus, UserFeed, FeedFetchStatus} from '../../propTypes'
 
 dayjs.locale('zh-cn')
 dayjs.extend(relativeTime)
@@ -35,8 +36,26 @@ const formatTime = (time: String) => {
     }
 }
 
+const getUserFeedStatus = (item: UserFeed) => {
+    const { feed } = item
+    let status = UserFeedStatus.normal
+    if (item.stop) {
+        status = UserFeedStatus.stop
+    } else if (feed.fetchStatus === FeedFetchStatus.new) {
+        status = UserFeedStatus.init
+    } else if (feed.fetchStatus === FeedFetchStatus.initFailed) {
+        status = UserFeedStatus.initFailed
+    } else if (feed.fetchStatus === FeedFetchStatus.init) {
+        status = UserFeedStatus.success
+    } else if (feed.fetchStatus === FeedFetchStatus.normal) {
+        status = UserFeedStatus.normal
+    }
+    return status
+}
+
 export {
     transformPushRecord,
     transformUserFeed,
-    formatTime
+    formatTime,
+    getUserFeedStatus
 }

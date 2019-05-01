@@ -16,6 +16,7 @@ module.exports = {
 		newlyUserFeeds: _ => 'newlyUserFeeds',
 		userCollections: uid => `usercollections:${uid}`,
 		userMessageUpdateTime: uid => `userMessageUpdateTime:${uid}`,
+		userCheckStatus: uid => `userCheckStatus:${uid}`,
 	},
 	FeedOriginTypes: {
 		diff: 'diff',
